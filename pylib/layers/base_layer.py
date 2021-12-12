@@ -5,6 +5,7 @@ class Layer:
         self.trainable = trainable
         self.has_var = has_var
         self._transpose_input_ = transpose_input
+        
     def __call__(self, input_tensor):
         if self._transpose_input_:
             # turn (batch, neurals) to (neruals, batch)

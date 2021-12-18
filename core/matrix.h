@@ -18,26 +18,23 @@ public:
     size_t ncol() const {return m_ncol;}
 
 private:
-    bool m_colmajor;
-    double *m_buffer;
-    size_t m_row_stride;
     size_t m_nrow;
     size_t m_ncol;
+    double *m_buffer;
+    size_t m_row_stride;
+    bool m_colmajor;
+
 };
 
 class Matrix {
 public:
-    Matrix():
-        m_buffer(NULL), m_nrow(0), m_ncol(0)
-    {
-        
-    }
+    Matrix();
     Matrix(size_t nrow, size_t ncol);
 
-    template<typename T>
-    Matrix(T* ptr, size_t nrow, size_t ncol);
+    template<typename Type>
+    Matrix(Type* ptr, size_t nrow, size_t ncol);
 
-    Matrix(Matrix const &target) ;
+    Matrix(Matrix const &target);
 
     ~Matrix();
 
@@ -52,12 +49,14 @@ public:
     bool operator==(const Matrix &target) const;
 
     Block get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row = false) const;
-
     void set_block(size_t block_size, size_t row_idx, size_t col_idx, const Matrix &mat) ;
 
+    Matrix T() const;
     double *data() { return m_buffer; }
     size_t nrow() const { return m_nrow; }
     size_t ncol() const { return m_ncol; }
+    py::array_t<double, py::array::c_style | py::array::forcecast> get_array();
+
     friend Matrix multiply_mkl(Matrix &mat1, Matrix &mat2);
 
 private:

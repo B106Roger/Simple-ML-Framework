@@ -23,9 +23,10 @@ optimizer = SGD(lr=0.1, momentum=0.7)
 #SGD(lr=0.8) # 1.0,400: 0.00506; 2.0, 400: 0.0009795
 # optimizer = Adam(lr=0.1) # 1e-2,400: 0.02557; 1e-1, 400: 0.00069
 
-# Prepare Data
+# Prepare Data x=(batch, 2), y=(batch, 1)
 x, y = generate_XOR_easy()
 # x, y = generate_linear(n=100)
+
 
 def train():
     losses = []
@@ -55,4 +56,4 @@ def train():
     show_data(losses, 'Training Loss', show_directly=False)
     show_data(precisions, 'Training Precision', show_directly=True)
 
-train()
+# train()

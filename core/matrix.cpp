@@ -6,15 +6,18 @@
 #include "matrix.h"
 
 namespace py = pybind11;
+    ////////////////////////////////////////////////////////////////////////////////
+    /////////////       Class Member for Block Class                     //////////
+    ////////////////////////////////////////////////////////////////////////////////
 
     Block::Block(size_t nrow, size_t ncol, bool colmajor):
-        m_nrow(nrow), m_ncol(ncol), m_buffer(NULL), m_colmajor(colmajor)
+        m_nrow(nrow), m_ncol(ncol), m_buffer(NULL), m_row_stride(0), m_colmajor(colmajor)
     {
         if (m_colmajor)
             m_buffer=new double[m_nrow*m_ncol];
     }
     Block::Block(const Block &block):
-        m_nrow(block.m_nrow), m_ncol(block.m_ncol), m_buffer(NULL), m_colmajor(block.m_colmajor)
+        m_nrow(block.m_nrow), m_ncol(block.m_ncol), m_buffer(NULL), m_row_stride(0), m_colmajor(block.m_colmajor)
     {
         if (block.m_colmajor)
         {
@@ -37,8 +40,8 @@ namespace py = pybind11;
     void Block::setContent(double *ptr, size_t row_stride) {
         m_row_stride = row_stride;
         if (m_colmajor) {
-            for (int i = 0; i < m_nrow; i++) {
-                for (int j = 0; j < m_ncol; j++) {
+            for (size_t i = 0; i < m_nrow; i++) {
+                for (size_t j = 0; j < m_ncol; j++) {
                     m_buffer[j * m_nrow + i]= ptr[i * m_row_stride + j];
                 }
             }
@@ -48,19 +51,26 @@ namespace py = pybind11;
         }
     }
     
-    
+    ////////////////////////////////////////////////////////////////////////////////
+    /////////////       Class Member for Matrix Class                     //////////
+    ////////////////////////////////////////////////////////////////////////////////
+
+    Matrix::Matrix()
+        : m_nrow(0), m_ncol(0), m_buffer(NULL)
+    {
+    }
 
     Matrix::Matrix(size_t nrow, size_t ncol)
-      : m_nrow(nrow), m_ncol(ncol)
+      : m_nrow(nrow), m_ncol(ncol), m_buffer(NULL)
     {
         size_t nelement = nrow * ncol;
         m_buffer = new double[nelement];
         memset(m_buffer, 0, nelement*sizeof(double));
     }
 
-    template<typename T>
-    Matrix::Matrix(T* ptr, size_t nrow, size_t ncol):
-        m_nrow(nrow), m_ncol(ncol)
+    template<typename Type>
+    Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
+        :m_nrow(nrow), m_ncol(ncol), m_buffer(NULL)
     {  
         size_t nelement = nrow * ncol;
         m_buffer = new double[nelement];
@@ -88,34 +98,46 @@ namespace py = pybind11;
     double & Matrix::operator() (size_t row, size_t col) {       // for setitem
         return m_buffer[row*m_ncol + col];
     }
+    // implement in vectorize mode
     Matrix Matrix::operator+(const Matrix &mat) const {
-        Matrix result(mat);
-        for (int i=0; i< m_nrow; i+=1) {
-            for (int j=0; j<m_ncol; j+=1) {
-                result.m_buffer[i*m_ncol+j]+=(*this)(i,j);
+        size_t row=std::max(mat.m_nrow, m_nrow);
+        size_t col=std::max(mat.m_ncol, m_ncol);
+        
+        // check broadcastable
+        if (mat.m_nrow != m_nrow && !(mat.m_nrow == 1 || m_nrow == 1)) 
+            throw std::runtime_error("The shape is not broadcastable in row.");
+        else if (mat.m_ncol != m_ncol && !(mat.m_ncol == 1 || m_ncol == 1))
+            throw std::runtime_error("The shape is not broadcastable in column.");
+
+        Matrix result(row, col);
+        for (size_t i = 0; i < row; i+=1) {
+            for (size_t j = 0; j < col; j+=1) {
+                result.m_buffer[i*col+j] = 
+                    (*this)(i % m_nrow,     j % m_ncol) + 
+                        mat(i % mat.m_nrow, j % mat.m_ncol);
             }
         }
         return result;
     }
     void Matrix::operator+=(const Matrix &mat) {
-        for (int i=0; i< m_nrow; i+=1) {
-            for (int j=0; j<m_ncol; j+=1) {
+        for (size_t i=0; i< m_nrow; i+=1) {
+            for (size_t j=0; j<m_ncol; j+=1) {
                 m_buffer[i*m_ncol+j]+=mat(i,j);
             }
         }
     }
     Matrix Matrix::operator-(const Matrix &mat) const {
         Matrix result(mat);
-        for (int i=0; i< m_nrow; i+=1) {
-            for (int j=0; j<m_ncol; j+=1) {
+        for (size_t i=0; i< m_nrow; i+=1) {
+            for (size_t j=0; j<m_ncol; j+=1) {
                 result.m_buffer[i*m_ncol+j]-=(*this)(i,j);
             }
         }
         return result;
     }
     void Matrix::operator-=(const Matrix &mat) {
-        for (int i=0; i< m_nrow; i+=1) {
-            for (int j=0; j<m_ncol; j+=1) {
+        for (size_t i=0; i< m_nrow; i+=1) {
+            for (size_t j=0; j<m_ncol; j+=1) {
                 m_buffer[i*m_ncol+j]-=mat(i,j);
             }
         }
@@ -133,13 +155,25 @@ namespace py = pybind11;
         if (m_nrow != target.m_nrow || m_ncol != target.m_ncol) {
             return false;
         } else {
-            for (int i = 0; i < m_nrow; i++) {
-                for (int j = 0; j < m_ncol; j++) {
+            for (size_t i = 0; i < m_nrow; i++) {
+                for (size_t j = 0; j < m_ncol; j++) {
                     if ((*this)(i,j) != target(i,j)) return false;
                 }
             }
             return true;
         }
+    }
+
+    Matrix Matrix::T()const
+    {
+        Matrix result(m_ncol, m_nrow);
+        for(size_t i = 0; i<m_nrow*m_ncol; i++)
+        {
+            size_t row_idx = i / m_ncol;
+            size_t col_idx = i % m_nrow;
+            result(row_idx, col_idx) = m_buffer[i];
+        }
+        return result;
     }
 
     Block Matrix::get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row) const{
@@ -160,12 +194,25 @@ namespace py = pybind11;
         // col_idx: col index of the block
         size_t bk_col = m_ncol - block_size*col_idx < block_size ? m_ncol - block_size*col_idx : block_size;
         size_t bk_row = m_nrow - block_size*row_idx < block_size ? m_nrow - block_size*row_idx : block_size;
-        for (int i=0;i<bk_row; i++) {
+        for (size_t i=0;i<bk_row; i++) {
             size_t target_row=(block_size*row_idx+i)*m_ncol;
             size_t target_col=(block_size*col_idx);
             size_t source_row=i*bk_col;
             memcpy(m_buffer+target_row+target_col, mat.m_buffer+source_row, sizeof(double) * mat.m_ncol);
         }
+    }
+
+    py::array_t<double, py::array::c_style | py::array::forcecast> Matrix::get_array()
+    {
+        py::buffer_info  buffer(
+            m_buffer,
+            sizeof(double),
+            py::format_descriptor<double>::format(),
+            2,
+            {m_nrow, m_ncol},
+            {sizeof(double) * m_ncol, sizeof(double)}
+        );
+        return py::array_t<double, py::array::c_style | py::array::forcecast>(buffer, py::cast(this));
     }
 
 
@@ -175,10 +222,10 @@ Matrix multiply_naive_bk(const Block &mat1, const Block &mat2) {
     size_t col=mat2.ncol();
     size_t content=mat1.ncol();
     Matrix tmp(row, col);
-    for (int i=0; i<row; i++) {
-        for (int j=0; j<col; j++) {
+    for (size_t i=0; i<row; i++) {
+        for (size_t j=0; j<col; j++) {
             double sum=0.0;
-            for (int k=0; k<content; k++) {
+            for (size_t k=0; k<content; k++) {
                 sum+=mat1(i,k)*mat2(k,j);
             }
             tmp(i,j)=sum;
@@ -192,10 +239,10 @@ Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2) {
     size_t col=mat2.ncol();
     size_t content=mat1.ncol();
     Matrix tmp(row, col);
-    for (int i=0; i<row; i++) {
-        for (int j=0; j<col; j++) {
+    for (size_t i=0; i<row; i++) {
+        for (size_t j=0; j<col; j++) {
             double sum=0.0;
-            for (int k=0; k<content; k++) {
+            for (size_t k=0; k<content; k++) {
                 sum+=mat1(i,k)*mat2(k,j);
             }
             tmp(i,j)=sum;
@@ -209,14 +256,14 @@ Matrix multiply_tile(Matrix &mat1, Matrix &mat2, size_t block_size) {
     size_t col=mat2.ncol();
     size_t content=mat1.ncol();
     Matrix result(row, col);
-    int max_bk_row = row % block_size == 0 ? row/block_size : row/block_size+1;
-    int max_bk_col = col % block_size == 0 ? col/block_size : col/block_size+1;
-    int max_bk_content = content % block_size == 0 ? content/block_size : content/block_size+1;
+    size_t max_bk_row = row % block_size == 0 ? row/block_size : row/block_size+1;
+    size_t max_bk_col = col % block_size == 0 ? col/block_size : col/block_size+1;
+    size_t max_bk_content = content % block_size == 0 ? content/block_size : content/block_size+1;
 
-    for (int i=0; i<max_bk_row; i++) {
-        for (int j=0; j<max_bk_col; j++) {
+    for (size_t i=0; i<max_bk_row; i++) {
+        for (size_t j=0; j<max_bk_col; j++) {
             Matrix tmpmat(1,1);
-            for (int k=0; k<max_bk_content; k++) {
+            for (size_t k=0; k<max_bk_content; k++) {
                 if (k==0) 
                     tmpmat = multiply_naive_bk(mat1.get_block(block_size, i, k, false), mat2.get_block(block_size, k, j, true));
                 else
@@ -267,6 +314,7 @@ void test(py::buffer b) {
 PYBIND11_MODULE(_matrix, m) {
     m.doc() = "nsd21au hw3 pybind implementation"; // optional module docstring
     py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
+        // given Matrix instance and convert to numpy object
         .def_buffer([](Matrix &m) -> py::buffer_info{
             return py::buffer_info(
                 m.data(),
@@ -277,6 +325,7 @@ PYBIND11_MODULE(_matrix, m) {
                 {sizeof(double) * m.ncol(), sizeof(double)}
             );
         })
+        // given numpy array instance and convert to Matrix object
         .def(py::init([](py::buffer b)->Matrix {
             py::buffer_info info = b.request();
             if (info.ndim != 2)
@@ -313,10 +362,12 @@ PYBIND11_MODULE(_matrix, m) {
         .def(pybind11::init<int,int>())
         .def("__setitem__", [](Matrix &mat, std::pair<size_t, size_t> idx, double val) { return mat(idx.first, idx.second) = val; })
         .def("__getitem__", [](const Matrix &mat, std::pair<size_t, size_t> idx) { return mat(idx.first, idx.second); })
+        .def("__add__", [](const Matrix &mat1, const Matrix &mat2) {return mat1 + mat2;})
         .def("__eq__", [](const Matrix &mat1, const Matrix &mat2) { return mat1 == mat2; })
+        .def("T", &Matrix::T)
         .def_property_readonly("nrow", &Matrix::nrow)
-        .def_property_readonly("ncol", &Matrix::ncol);
-
+        .def_property_readonly("ncol", &Matrix::ncol)
+        .def_property("array", &Matrix::get_array, nullptr);
     m.def("multiply_naive", &multiply_naive);
     m.def("multiply_tile", &multiply_tile);
     m.def("multiply_mkl", &multiply_mkl);

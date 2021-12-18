@@ -4,6 +4,8 @@
 #include <math.h>
 #include <mkl.h>
 
+#ifndef __MATRIX__
+#define __MATRIX__
 namespace py = pybind11;
 
 class Block {
@@ -30,13 +32,12 @@ class Matrix {
 public:
     Matrix();
     Matrix(size_t nrow, size_t ncol);
-
+    
     template<typename Type>
     Matrix(Type* ptr, size_t nrow, size_t ncol);
-
-    Matrix(Matrix const &target);
-
+    Matrix(const Matrix &target);
     ~Matrix();
+
 
     // No bound check.
     double   operator() (size_t row, size_t col) const;
@@ -57,7 +58,7 @@ public:
     size_t ncol() const { return m_ncol; }
     py::array_t<double, py::array::c_style | py::array::forcecast> get_array();
 
-    friend Matrix multiply_mkl(Matrix &mat1, Matrix &mat2);
+    // friend Matrix multiply_mkl(Matrix &mat1, Matrix &mat2);
 
 private:
     
@@ -66,3 +67,10 @@ private:
     double * m_buffer;
 
 };
+
+// void test(py::buffer b);
+// Matrix multiply_mkl(Matrix &mat1, Matrix &mat2);
+// Matrix multiply_tile(Matrix &mat1, Matrix &mat2, size_t block_size);
+// Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2);
+#endif
+// end #define __MATRIX__

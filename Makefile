@@ -24,7 +24,7 @@ MATLIB = _matrix${shell python3-config --extension-suffix}
 .PHONY: all
 all: ${MATLIB}
 
-${MATLIB}: ./core/matrix.cpp ./core/base_layer.cpp
+${MATLIB}: ./core/pybindwrapper.cpp ./core/matrix.cpp #./core/base_layer.cpp ./core/linear.cpp
 	${CXX} ${FPIC} $? -o $@ ${CXXFLAGS} 
 	
 

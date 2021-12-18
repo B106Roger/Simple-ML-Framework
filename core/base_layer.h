@@ -1,5 +1,7 @@
 #include"matrix.h"
 
+#ifndef __BASE_LAYER__
+#define __BASE_LAYER__
 class BaseLayer
 {
 public:
@@ -8,7 +10,7 @@ public:
     ~BaseLayer();
 
     Matrix operator()(Matrix &input_tensor);
-    
+
     virtual Matrix forward(Matrix &input_tensor);
     virtual Matrix backward(Matrix &input_tensor);
     // virtual void build();
@@ -18,3 +20,5 @@ private:
     bool   m_trainable;
     bool   m_transpose_input;
 };
+#endif
+// #ifndef __BASE_LAYER__

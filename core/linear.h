@@ -10,10 +10,13 @@ public:
     Linear(int in, int out, bool use_bias=false, bool trainable=true);
     ~Linear();
 
-    Matrix forward(Matrix &input_tensor);
+    Matrix forward(const Matrix &input_tensor);
     // Matrix backward(Matrix &gradient);
 
     void set_weight(pybind11::tuple py_tuple);
+    pybind11::tuple get_weight() {return pybind11::make_tuple(m_weight, m_bias);}
+    Matrix& weight() {return m_weight;}
+    Matrix& bias() {return m_bias;}
 private:
 
     size_t m_in_feat;

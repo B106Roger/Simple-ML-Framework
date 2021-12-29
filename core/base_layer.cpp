@@ -13,7 +13,7 @@ Matrix BaseLayer::operator()(Matrix &input_tensor)
     return this->forward(input_tensor);
 }
 
-Matrix BaseLayer::forward(Matrix &input_tenosr)
+Matrix BaseLayer::forward(const Matrix &input_tenosr)
 {
     return input_tenosr;
 }

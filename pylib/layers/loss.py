@@ -5,6 +5,8 @@ class Loss:
     def __init__(self):
         pass
     def __call__(self, ground_truth, input_tensor):
+        # ground_truth=(batch, dim)
+        # input_tensor=(batch, dim)
         self.record_grads(ground_truth, input_tensor)
         x = self.forward(ground_truth, input_tensor)
         return x    
@@ -22,4 +24,5 @@ class MSE(Loss):
 
     def backward(self):
         batch_grads = 2 * (self._input_tensor_ - self._ground_truth_)
+        # batch_grads=(batch, dim)
         return batch_grads

@@ -1,37 +1,13 @@
 import unittest
 import numpy as np
 import _matrix
+from testcase.test_util import (
+    print_matrix,
+    init_matrix,
+    print_ndarray,
+    test_equal,
+)
 
-def print_matrix(mat):
-    r=mat.nrow
-    c=mat.ncol
-    for i in range(r):
-        for j in range(c):
-            print(f'{mat[i,j]:10.4f}', end=' ')
-        print()
-
-def init_matrix(mat):
-    r=mat.nrow
-    c=mat.ncol
-    for i in range(r):
-        for j in range(c):
-            mat[i,j]=i*mat.ncol+j
-
-def print_ndarray(ndarray):
-    r=ndarray.shape[0]
-    c=ndarray.shape[1]
-    for i in range(r):
-        for j in range(c):
-            print(f'{ndarray[i,j]:10.4f}', end=' ')
-        print()
-
-def test_equal(mat1, ndarray):
-    col=mat1.ncol
-    row=mat1.nrow
-    for i in range(row):
-        for j in range(col):
-            if mat1[i,j] != ndarray[i,j]: return False
-    return True
 
 class TestStringMethods(unittest.TestCase):
     def test_multiply_naive(self):
@@ -84,6 +60,21 @@ class TestStringMethods(unittest.TestCase):
         self.assertTrue(a==b)
         a[1,1]=9999
         self.assertFalse(a==b)
+
+    def test_transpose(self):
+        # mat1=np.arange(0,20000).reshape(200,100)
+        mat1=np.arange(0,20).reshape(2,10)
+        mat1T=mat1.T
+
+        # Test Matrix transpose
+        testmat=_matrix.Matrix(mat1)
+        testmatT=testmat.T()
+        self.assertTrue(test_equal(testmatT, mat1T))
+        
+        # Test Matrix transpose multiplication
+        res=mat1@mat1T
+        test_res=_matrix.multiply_mkl(testmat, testmatT)
+        self.assertTrue(test_equal(test_res, res))
 
 if __name__ == '__main__':
     unittest.main()

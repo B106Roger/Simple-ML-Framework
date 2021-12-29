@@ -56,10 +56,11 @@ public:
     double *data() { return m_buffer; }
     size_t nrow() const { return m_nrow; }
     size_t ncol() const { return m_ncol; }
+    double* get_buffer() const {return m_buffer;}
     py::array_t<double, py::array::c_style | py::array::forcecast> get_array();
 
-    // friend Matrix multiply_mkl(Matrix &mat1, Matrix &mat2);
-
+    friend Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2);
+    void print_shape(const char* mat_name="") const {std::cout << mat_name << " m_nrow: " << m_nrow << " m_ncol: " << m_ncol << std::endl; }
 private:
     
     size_t m_nrow;
@@ -68,9 +69,9 @@ private:
 
 };
 
-// void test(py::buffer b);
-// Matrix multiply_mkl(Matrix &mat1, Matrix &mat2);
-// Matrix multiply_tile(Matrix &mat1, Matrix &mat2, size_t block_size);
-// Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2);
+void test(py::buffer b);
+Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2);
+Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2);
 #endif
 // end #define __MATRIX__

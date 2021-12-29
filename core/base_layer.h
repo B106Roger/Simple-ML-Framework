@@ -11,9 +11,9 @@ public:
 
     Matrix operator()(Matrix &input_tensor);
 
-    virtual Matrix forward(Matrix &input_tensor);
+    virtual Matrix forward(const Matrix &input_tensor);
     virtual Matrix backward(Matrix &input_tensor);
-    // virtual void build();
+
 private:
     Matrix m_input;
     Matrix m_grad;

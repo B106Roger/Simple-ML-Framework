@@ -38,11 +38,13 @@ if __name__=='__main__':
     ###################################
     number=4
     bk_size=16
-    r=500
-    c=500
+    r=3
+    c=50
+    r2=50
+    c2=50
 
     test=TestClass()
-    mat1, mat2=test.test_mats(r, c, r, c)
+    mat1, mat2=test.test_mats(r, c, r2, c2)
 
     f=open('performance.txt', 'w')
     t1=timeit.timeit(lambda: test.test_speed(_matrix.multiply_naive, mat1, mat2), number=number)

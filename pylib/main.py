@@ -34,6 +34,8 @@ def train():
     for epoch in range(1000):
         # Gradient Descent
         result = model(x)
+        # print(y.shape, result.shape)
+        # exit()
         loss = mse(y, result)
         grads = model.backward(mse.backward())
         optimizer.apply_gradients(model, grads)
@@ -56,4 +58,4 @@ def train():
     show_data(losses, 'Training Loss', show_directly=False)
     show_data(precisions, 'Training Precision', show_directly=True)
 
-# train()
+train()

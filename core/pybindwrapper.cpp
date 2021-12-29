@@ -4,12 +4,13 @@
 #include <math.h>
 #include <mkl.h>
 #include "matrix.h"
-// #include "linear.h"
+#include "linear.h"
+
 template<typename Type>
 Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
     :m_nrow(nrow), m_ncol(ncol), m_buffer(NULL)
 {  
-    std::cout << 456 << std::endl;
+    // std::cout << 456 << std::endl;
     size_t nelement = nrow * ncol;
     m_buffer = new double[nelement];
     for(size_t i =0; i < nelement; i++) 
@@ -17,6 +18,13 @@ Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
         m_buffer[i] = (double)ptr[i];
     }
 }
+
+Matrix layer_forward(Linear &layer, const Matrix &input_tensor) {
+    // convert (batch, in_feat)
+    Matrix output = layer.forward(input_tensor);
+    return output;
+}
+
 namespace py = pybind11;
 
 PYBIND11_MODULE(_matrix, m) {
@@ -25,10 +33,10 @@ PYBIND11_MODULE(_matrix, m) {
     // *********************************************
     // isolation function
     // *********************************************
-    // m.def("multiply_naive", &multiply_naive);
-    // m.def("multiply_tile", &multiply_tile);
-    // m.def("multiply_mkl", &multiply_mkl);
-    // m.def("format_descriptor", &test);
+    m.def("multiply_naive", &multiply_naive);
+    m.def("multiply_tile", &multiply_tile);
+    m.def("multiply_mkl", &multiply_mkl);
+    m.def("format_descriptor", &test);
 
     // *********************************************
     // Class
@@ -90,17 +98,15 @@ PYBIND11_MODULE(_matrix, m) {
         .def_property_readonly("ncol", &Matrix::ncol)
         .def_property("array", &Matrix::get_array, nullptr);
 
-    // py::class_<Linear>(m, "Linear")
-    //     .def(pybind11::init<int,int,bool,bool>()) 
-    //         // py::arg("use_bias")=true, 
-    //         // py::arg("trainable")=true)
-    //     .def("forward", [](Linear &layer, const Matrix &input_tensor) {
-    //         // convert (batch, in_feat) to (in_feat, batch)
-    //         Matrix raw_input_tensor = input_tensor.T();
-    //         Matrix output = layer.forward(raw_input_tensor);
-    //         // convert (out_feat, batch) to (out_feat, batch)
-    //         output = output.T();
-    //         return output;
-    //     })
-    //     .def("set_weight", &Linear::set_weight);
+    py::class_<Linear>(m, "Linear")
+        .def(pybind11::init<int,int,bool,bool>()) 
+            // py::arg("use_bias")=true, 
+            // py::arg("trainable")=true)
+        .def("forward", layer_forward)
+        .def("__call__", layer_forward)
+        .def("set_weight", &Linear::set_weight)
+        .def_property_readonly("m_weight", &Linear::weight)
+        .def_property_readonly("m_bias", &Linear::bias)
+        .def("get_weight", &Linear::get_weight);
+
 }

@@ -14,20 +14,21 @@ class DenseLayer(Layer):
 
         # Variable Generation
         variance_var = 0.5 # np.sqrt(1.0/(in_features+out_features))
-        self._trainable_vars_ = np.random.standard_normal((self.out_features, self.in_features)) * variance_var
+        self._trainable_vars_ = np.random.standard_normal((self.in_features, self.out_features)) * variance_var
         # self._trainable_vars_ = np.random.random((self.out_features, self.in_features))
         if self.bias:
             variance_bias = np.sqrt(1.0/out_features)
             self._trainable_bias_ = np.random.standard_normal((1, self.out_features)) * variance_bias
-            # self._trainable_bias_ = np.random.random((1, self.out_features))
 
     def forward(self, input_tensor):
         d_print('---------------------------------- Forward')
         # d_print('self._trainable_vars_', self._trainable_vars_.shape)
         # d_print('input_tensor', input_tensor.shape)
         
-        result = np.matmul(self._trainable_vars_, input_tensor)
-        result = result.T
+        # input_tesnor=(batch, in_feat)
+        # trainable_vars=(in_feat, out_feat)
+        # result=(batch, out_feat)
+        result = np.matmul(input_tensor, self._trainable_vars_)
         if self.bias:
             result = result + self._trainable_bias_
 
@@ -38,16 +39,16 @@ class DenseLayer(Layer):
     
     def backward(self, input_grad=1.0):
         # input_grad=(batch, out_feature)
-        # self._input_tensor_=(in_feature, batch)
+        # self._input_tensor_=(batch, in_feature)
         
-        # (in_feature, out_feature)
-        trainable_grads = np.matmul(self._input_tensor_, input_grad).T
+        # trainable_grads=(in_feature, out_feature)
+        trainable_grads = np.matmul(self._input_tensor_.T, input_grad)
 
-        # self._trainable_vars_.T=(in_feature, out_feature)
-        # input_grad.T=(out_feature, batch)
+        # self._trainable_vars_=(in_feature, out_feature)
+        # input_grad =(batch, out_feature)
         # (in_feature, batch)
-        dzda = np.matmul(self._trainable_vars_.T, input_grad.T)
-        dzda = dzda.T
+        dzda = np.matmul(input_grad, self._trainable_vars_.T)
+
 
         if self.bias:
             trainable_bias_grads = input_grad.sum(axis=0, keepdims=True)

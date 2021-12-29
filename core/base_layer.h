@@ -9,8 +9,10 @@ public:
     BaseLayer(bool trainable, bool transpose_input);
     ~BaseLayer();
 
-    Matrix operator()(Matrix &input_tensor);
-
+    //////////////////////////////////////////////////////////
+    /////////////////// Virtual Function /////////////////////
+    //////////////////////////////////////////////////////////
+    // Matrix operator()(Matrix &input_tensor);
     virtual Matrix forward(const Matrix &input_tensor);
     virtual Matrix backward(Matrix &input_tensor);
 

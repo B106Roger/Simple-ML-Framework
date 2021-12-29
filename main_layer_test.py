@@ -51,6 +51,47 @@ class TestStringMethods(unittest.TestCase):
             #     print('-'*50)
             #     print(random_data)
 
+    def test_network_construct(self):
+        print('*'*70)
+        batch=4
+        layer_shape=[
+            (16,32),
+            (32,64),
+            (64,128),
+            (128,16)
+        ]
+        a=[
+            mat.Linear(*layer_shape[0], True, True),
+            mat.Linear(*layer_shape[1], True, True),
+            mat.Linear(*layer_shape[2], True, True),
+            mat.Linear(*layer_shape[3], True, True),
+        ]
+        network=mat.Network(a)
+        # initialize network
+        random_data=np.random.randint(low=-5,high=5,size=(batch, layer_shape[0][0]))
+        Mrandom_data=mat.Matrix(random_data)
+        result=network(Mrandom_data)
+        self.assertTrue(result.array.shape==(batch, layer_shape[-1][-1]))
+
+        for i, (in_feat, out_feat) in enumerate(layer_shape):
+            random_weight=np.random.randint(low=-5, high=5, size=(in_feat, out_feat))
+            Mrandom_weight=mat.Matrix(random_weight)
+            random_bias=np.random.randint(low=-5, high=5, size=(1, out_feat))
+            Mrandom_bias=mat.Matrix(random_bias)
+            network.layers[i].set_weight((Mrandom_weight, Mrandom_bias))
+            random_data=random_data@random_weight+random_bias
+        Mrandom_data=network(Mrandom_data)
+
+        self.assertTrue(test_equal(Mrandom_data, random_data))
+        self.assertFalse(id(Mrandom_data)==id(random_data))
+        print(hex(id(Mrandom_data)), hex(id(random_data)))
+        print(Mrandom_data)
+        
+    def test_inhiritence(self):
+        # baselayer=mat.BaseLayer() 
+        pass
+
+        
 
 if __name__ == '__main__':
     unittest.main()

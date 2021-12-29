@@ -1,10 +1,13 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 #include <iostream>
 #include <math.h>
 #include <mkl.h>
 #include "matrix.h"
+#include "base_layer.h"
 #include "linear.h"
+#include "network.h"
 
 template<typename Type>
 Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
@@ -98,15 +101,28 @@ PYBIND11_MODULE(_matrix, m) {
         .def_property_readonly("ncol", &Matrix::ncol)
         .def_property("array", &Matrix::get_array, nullptr);
 
-    py::class_<Linear>(m, "Linear")
+
+    py::class_<BaseLayer>(m, "BaseLayer")
+        .def(pybind11::init<bool,bool>());
+
+
+    py::class_<Linear, BaseLayer>(m, "Linear")
         .def(pybind11::init<int,int,bool,bool>()) 
             // py::arg("use_bias")=true, 
             // py::arg("trainable")=true)
         .def("forward", layer_forward)
         .def("__call__", layer_forward)
         .def("set_weight", &Linear::set_weight)
+        .def("get_weight", &Linear::get_weight)
         .def_property_readonly("m_weight", &Linear::weight)
-        .def_property_readonly("m_bias", &Linear::bias)
-        .def("get_weight", &Linear::get_weight);
+        .def_property_readonly("m_bias", &Linear::bias);
 
+    // typedef abc std::vector<BaseLayer>;
+    py::class_<Network>(m, "Network")
+        .def(pybind11::init<std::vector<BaseLayer*>>())
+        .def(pybind11::init<std::vector<int>>())
+        .def("__call__", [](Network &net, const Matrix &mat1) {
+            return net.forward(mat1); 
+        })
+        .def_property("layers", &Network::get_layers, nullptr);
 }

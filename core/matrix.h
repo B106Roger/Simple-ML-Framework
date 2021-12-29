@@ -38,7 +38,6 @@ public:
     Matrix(const Matrix &target);
     ~Matrix();
 
-
     // No bound check.
     double   operator() (size_t row, size_t col) const;
     double & operator() (size_t row, size_t col) ;

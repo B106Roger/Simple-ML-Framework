@@ -1,3 +1,5 @@
+#include<pybind11/pybind11.h>
+#include<pybind11/stl.h>
 #include"matrix.h"
 
 #ifndef __BASE_LAYER__
@@ -9,16 +11,15 @@ public:
     BaseLayer(bool trainable, bool transpose_input);
     ~BaseLayer();
 
+    Matrix operator()(Matrix &input_tensor);
     //////////////////////////////////////////////////////////
     /////////////////// Virtual Function /////////////////////
     //////////////////////////////////////////////////////////
-    // Matrix operator()(Matrix &input_tensor);
     virtual Matrix forward(const Matrix &input_tensor);
-    virtual Matrix backward(Matrix &input_tensor);
+    virtual std::pair<Matrix,pybind11::tuple> backward(Matrix &input_tensor);
 
-private:
+protected:
     Matrix m_input;
-    Matrix m_grad;
     bool   m_trainable;
     bool   m_transpose_input;
 };

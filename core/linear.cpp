@@ -21,14 +21,10 @@ Linear::~Linear() {
 // input_tensor=(batch, feat_dim)
 Matrix Linear::forward(const Matrix &input_tensor)
 {
-    std::cout << "calling Linear forward" << std::endl;
     if (input_tensor.ncol() != m_weight.nrow()) throw std::runtime_error("mis match input_tensor.ncol and m_weight.nrow !\n");
     // m_weight=(feat_dim, out_dim)
     // output=(batch, out_dim)
     Matrix output = multiply_mkl(input_tensor, m_weight);
-    // output.print_shape();
-    // input_tensor.print_shape();
-    // m_weight.print_shape();
     if (m_use_bias) {
         // TODO broadcast m_bias
         output = output + m_bias;
@@ -36,9 +32,43 @@ Matrix Linear::forward(const Matrix &input_tensor)
     return output;
 }
 
-Matrix Linear::backward(Matrix &gradient)
+// gradient=(batch, out_feat)
+std::pair<Matrix,pybind11::tuple> Linear::backward(Matrix &gradient)
 {
-    return gradient;
+    printf("*************************************************\n");
+    // m_input=(batch, in_feat)
+    // gradient=(batch, out_feat)
+    // m_weight_gradient=(in_feat, out_feat)
+    m_weight_gradient=multiply_mkl(m_input.T(), gradient);
+    std::cout << "m_input.T(): ";
+    m_input.T().print_shape();
+    std::cout << "gradient_flow: ";
+    gradient.print_shape();
+    std::cout << "m_weight_gradient: ";
+    m_weight_gradient.print_shape();
+    // m_weight=(in_feat, out_feat)
+    // m_weight.T=(out_feat, in_feat)
+    // graident=(batch, out_feat)
+    // dzda=(batch, in_feat)
+    Matrix dzda = multiply_mkl(gradient, m_weight.T());
+    printf("*************************************************\n");
+    if (m_use_bias)
+    {
+        Matrix ones=Matrix::fillwith(1, gradient.nrow(), 1.0);
+        m_bias_gradient = multiply_mkl(ones, gradient);
+        return std::pair<Matrix, pybind11::tuple>(
+            dzda, 
+            pybind11::make_tuple(
+                m_weight_gradient, 
+                m_bias_gradient
+            )
+        );
+    }
+
+    return std::pair<Matrix, pybind11::tuple>(
+            dzda, 
+            pybind11::make_tuple(m_weight_gradient)
+        );
 }
 
 void Linear::set_weight(pybind11::tuple py_tuple)

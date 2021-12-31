@@ -21,6 +21,7 @@ class DenseLayer(Layer):
             self._trainable_bias_ = np.random.standard_normal((1, self.out_features)) * variance_bias
 
     def forward(self, input_tensor):
+        print('_trainable_bias_', self._trainable_bias_.shape )
         d_print('---------------------------------- Forward')
         # d_print('self._trainable_vars_', self._trainable_vars_.shape)
         # d_print('input_tensor', input_tensor.shape)
@@ -30,6 +31,9 @@ class DenseLayer(Layer):
         # result=(batch, out_feat)
         result = np.matmul(input_tensor, self._trainable_vars_)
         if self.bias:
+            print('input_tensor', input_tensor.shape)
+            print('self._trainable_vars_', self._trainable_vars_.shape)
+            print('bias cond: ',result.shape, self._trainable_bias_.shape)
             result = result + self._trainable_bias_
 
         d_print('variable', self._trainable_vars_)
@@ -48,7 +52,7 @@ class DenseLayer(Layer):
         # input_grad =(batch, out_feature)
         # (in_feature, batch)
         dzda = np.matmul(input_grad, self._trainable_vars_.T)
-
+        print(dzda.shape, dzda)
 
         if self.bias:
             trainable_bias_grads = input_grad.sum(axis=0, keepdims=True)

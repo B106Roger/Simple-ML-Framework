@@ -7,6 +7,7 @@
 #include "matrix.h"
 #include "base_layer.h"
 #include "linear.h"
+#include "loss.h"
 #include "network.h"
 
 template<typename Type>
@@ -105,7 +106,6 @@ PYBIND11_MODULE(_matrix, m) {
     py::class_<BaseLayer>(m, "BaseLayer")
         .def(pybind11::init<bool,bool>());
 
-
     py::class_<Linear, BaseLayer>(m, "Linear")
         .def(pybind11::init<int,int,bool,bool>()) 
             // py::arg("use_bias")=true, 
@@ -117,12 +117,24 @@ PYBIND11_MODULE(_matrix, m) {
         .def_property_readonly("m_weight", &Linear::weight)
         .def_property_readonly("m_bias", &Linear::bias);
 
-    // typedef abc std::vector<BaseLayer>;
     py::class_<Network>(m, "Network")
         .def(pybind11::init<std::vector<BaseLayer*>>())
         .def(pybind11::init<std::vector<int>>())
         .def("__call__", [](Network &net, const Matrix &mat1) {
             return net.forward(mat1); 
         })
+        .def("backward", &Network::backward)
         .def_property("layers", &Network::get_layers, nullptr);
+
+    py::class_<BaseLoss>(m, "BaseLoss")
+        .def(pybind11::init<>())
+        .def("__call__", &BaseLoss::operator())
+        .def("forward", &BaseLoss::forward)
+        .def("backward", &BaseLoss::backward);
+
+    py::class_<MSE, BaseLoss>(m, "MSE")
+        .def(pybind11::init<>())
+        .def("forward", &MSE::forward)
+        .def("backward", &MSE::backward);
+
 }

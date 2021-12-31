@@ -13,6 +13,7 @@ class Layer:
         # operation, 
         # input_tesnor=(batch, in_feat)
         # output_tesnor=(batch, out_feat)
+        print('input_tensor bef forward', input_tensor.shape)
         output_tensor = self.forward(input_tensor)
         # store input_tensor and output_tensor so when calling backward, we can calaulate grad easily.
         self.record_grads(input_tensor)

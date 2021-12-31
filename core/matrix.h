@@ -32,6 +32,7 @@ class Matrix {
 public:
     Matrix();
     Matrix(size_t nrow, size_t ncol);
+    static Matrix fillwith(size_t nrow, size_t ncol, double num);
     
     template<typename Type>
     Matrix(Type* ptr, size_t nrow, size_t ncol);
@@ -47,6 +48,9 @@ public:
     void operator-=(const Matrix &mat) ;
     void operator=(const Matrix &target) ;
     bool operator==(const Matrix &target) const;
+    Matrix operator*(double num) const;
+    Matrix power(double p) const;
+    
 
     Block get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row = false) const;
     void set_block(size_t block_size, size_t row_idx, size_t col_idx, const Matrix &mat) ;

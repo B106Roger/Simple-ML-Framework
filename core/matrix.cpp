@@ -97,6 +97,13 @@ Matrix::Matrix(const Matrix &target) {
     memcpy(m_buffer, target.m_buffer, sizeof(double) * m_nrow * m_ncol);
 }
 
+Matrix Matrix::fillwith(size_t nrow, size_t ncol, double num)
+{
+    Matrix mat(nrow, ncol);
+    std::fill(mat.m_buffer, mat.m_buffer+nrow*ncol, num);
+    return mat;
+}
+
 Matrix::~Matrix() { 
     if (m_buffer == NULL && m_nrow != 0 and m_ncol != 0)
         std::cout << "pointer is null but has m_row, m_col is not 0\n" << std::endl;
@@ -162,10 +169,10 @@ void Matrix::operator+=(const Matrix &mat) {
     }
 }
 Matrix Matrix::operator-(const Matrix &mat) const {
-    Matrix result(mat);
+    Matrix result(*this);
     for (size_t i=0; i< m_nrow; i+=1) {
         for (size_t j=0; j<m_ncol; j+=1) {
-            result.m_buffer[i*m_ncol+j]-=(*this)(i,j);
+            result.m_buffer[i*m_ncol+j]-=mat(i,j);
         }
     }
     return result;
@@ -197,6 +204,23 @@ bool Matrix::operator==(const Matrix &target) const{
         }
         return true;
     }
+}
+Matrix Matrix::power(double p) const
+{
+    size_t nelement=m_ncol*m_nrow;
+    Matrix result(m_nrow, m_ncol);
+    for(size_t i = 0; i < nelement; i++){
+        result.m_buffer[i] = std::pow(m_buffer[i], p);
+    }
+    return result;
+}
+Matrix Matrix::operator*(double num) const
+{
+    Matrix mat(*this);
+    for (size_t i = 0; i < m_nrow*m_ncol; i++) {
+        mat.m_buffer[i] *= num;
+    }
+    return mat;
 }
 
 Matrix Matrix::T() const
@@ -250,8 +274,6 @@ py::array_t<double, py::array::c_style | py::array::forcecast> Matrix::get_array
     );
     return py::array_t<double, py::array::c_style | py::array::forcecast>(buffer, py::cast(this));
 }
-
-
 
 Matrix multiply_naive_bk(const Block &mat1, const Block &mat2) {
     size_t row=mat1.nrow();
@@ -312,6 +334,8 @@ Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
 }
 
 Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2) {
+    if (mat1.ncol() != mat2.nrow())
+        throw std::runtime_error("mismatch mat1.ncol and mat2.nrow!");
     mkl_set_num_threads(1);
     Matrix ret(mat1.nrow(), mat2.ncol());
     cblas_dgemm(

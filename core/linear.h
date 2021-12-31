@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include"base_layer.h"
 #include"matrix.h"
 
@@ -20,14 +21,18 @@ public:
     /////////////////// Virtual Function /////////////////////
     //////////////////////////////////////////////////////////
     Matrix forward(const Matrix &input_tensor);
-    Matrix backward(Matrix &gradient);
+    std::pair<Matrix,pybind11::tuple> backward(Matrix &gradient);
 private:
-
+    // configuration parameter
     size_t m_in_feat;
     size_t m_out_feat;
     bool m_use_bias;
+    // runtime parameter
     Matrix m_weight;
     Matrix m_bias;
+    Matrix m_weight_gradient;
+    Matrix m_bias_gradient;
+
 };
 #endif
 // end #ifndef __LINEAR__

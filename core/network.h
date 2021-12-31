@@ -1,3 +1,4 @@
+#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "base_layer.h"
 
@@ -11,10 +12,10 @@ public:
 
     ~Network();
     Matrix forward(Matrix input_tensor);
-    // Matrix backwrad(Matrix gradient);
+    std::vector<pybind11::tuple> backward(Matrix gradient);
     std::vector<BaseLayer*>& get_layers() {return m_layers; }
 
-private: 
+private:
     // Matrix forward(Matrix input_tensor);
     std::vector<BaseLayer*> m_layers;
 

@@ -14,6 +14,7 @@ public:
     Matrix forward(Matrix input_tensor);
     std::vector<pybind11::tuple> backward(Matrix gradient);
     std::vector<BaseLayer*>& get_layers() {return m_layers; }
+    void apply_gradients(std::vector<pybind11::tuple> gradients);
 
 private:
     // Matrix forward(Matrix input_tensor);

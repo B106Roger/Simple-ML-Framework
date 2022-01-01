@@ -137,7 +137,6 @@ class AdaDelta:
         model.apply_grads(new_grads)
         return
 
-
 class RMSprop:
     # Reference:
     # tensorflow 2.2.2 doc: tensorflow/python/keras/optimizer_v1/rmsprop.py
@@ -175,8 +174,6 @@ class RMSprop:
         new_grads = self.process_gradient(grads)
         model.apply_grads(new_grads)
         return
-
-
 
 class Adam:
     def __init__(self, lr=1e-3, beta_1=0.9, beta_2=0.999, epsilon=1e-7):

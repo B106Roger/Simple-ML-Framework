@@ -35,23 +35,15 @@ Matrix Linear::forward(const Matrix &input_tensor)
 // gradient=(batch, out_feat)
 std::pair<Matrix,pybind11::tuple> Linear::backward(Matrix &gradient)
 {
-    printf("*************************************************\n");
     // m_input=(batch, in_feat)
     // gradient=(batch, out_feat)
     // m_weight_gradient=(in_feat, out_feat)
     m_weight_gradient=multiply_mkl(m_input.T(), gradient);
-    std::cout << "m_input.T(): ";
-    m_input.T().print_shape();
-    std::cout << "gradient_flow: ";
-    gradient.print_shape();
-    std::cout << "m_weight_gradient: ";
-    m_weight_gradient.print_shape();
     // m_weight=(in_feat, out_feat)
     // m_weight.T=(out_feat, in_feat)
     // graident=(batch, out_feat)
     // dzda=(batch, in_feat)
     Matrix dzda = multiply_mkl(gradient, m_weight.T());
-    printf("*************************************************\n");
     if (m_use_bias)
     {
         Matrix ones=Matrix::fillwith(1, gradient.nrow(), 1.0);
@@ -90,4 +82,12 @@ void Linear::set_weight(pybind11::tuple py_tuple)
     }
 }
 
-
+void Linear::apply_gradient(pybind11::tuple gradients)
+{
+    Matrix w_grad = gradients[0].cast<Matrix>();
+    m_weight -= w_grad;
+    if (m_use_bias) {
+        Matrix b_grad = gradients[1].cast<Matrix>();
+        m_bias -= b_grad;
+    }
+}

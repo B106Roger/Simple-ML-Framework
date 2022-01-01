@@ -2,8 +2,8 @@
 
 
 BaseLayer::BaseLayer(){}
-BaseLayer::BaseLayer(bool trainable, bool transpose_input)
-    : m_trainable(trainable), m_transpose_input(transpose_input){}
+BaseLayer::BaseLayer(bool trainable, bool has_trainable_var)
+    : m_trainable(trainable), m_has_trainable_var(has_trainable_var){}
 BaseLayer::~BaseLayer(){}
 
 // input_tensor=(batch, feat_dim)
@@ -26,4 +26,9 @@ std::pair<Matrix,pybind11::tuple> BaseLayer::backward(Matrix &gradient)
         gradient, 
         pybind11::make_tuple(gradient)
     );
+}
+
+void BaseLayer::apply_gradient(pybind11::tuple gradients)
+{
+    
 }

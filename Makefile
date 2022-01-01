@@ -24,7 +24,7 @@ MATLIB = _matrix${shell python3-config --extension-suffix}
 .PHONY: all
 all: ${MATLIB}
 
-${MATLIB}: ./core/pybindwrapper.cpp ./core/matrix.cpp ./core/base_layer.cpp ./core/linear.cpp  ./core/network.cpp ./core/loss.cpp
+${MATLIB}: ./core/pybindwrapper.cpp ./core/matrix.cpp ./core/base_layer.cpp ./core/linear.cpp  ./core/network.cpp ./core/loss.cpp ./core/optimizer.cpp
 	rm -rf *.so __pycache__ .pytest_cache
 	${CXX} ${FPIC} $? -o $@ ${CXXFLAGS} 
 	python -c "import _matrix"
@@ -33,7 +33,7 @@ ${MATLIB}: ./core/pybindwrapper.cpp ./core/matrix.cpp ./core/base_layer.cpp ./co
 
 test: ${MATLIB}
 #	python performance_test.py
-#	python -m unittest main_matrix_test.py
+	python -m unittest main_matrix_test.py
 	python -m unittest main_layer_test.py
 
 

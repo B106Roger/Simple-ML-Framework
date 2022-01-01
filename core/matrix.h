@@ -39,16 +39,17 @@ public:
     Matrix(const Matrix &target);
     ~Matrix();
 
-    // No bound check.
+    // Math Operation Function
     double   operator() (size_t row, size_t col) const;
     double & operator() (size_t row, size_t col) ;
     Matrix operator+(const Matrix &mat) const ;
     void operator+=(const Matrix &mat) ;
     Matrix operator-(const Matrix &mat) const ;
     void operator-=(const Matrix &mat) ;
-    void operator=(const Matrix &target) ;
     bool operator==(const Matrix &target) const;
+    void operator=(const Matrix &target) ;
     Matrix operator*(double num) const;
+    Matrix operator/(double num) const;
     Matrix power(double p) const;
     
 

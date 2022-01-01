@@ -9,6 +9,7 @@
 #include "linear.h"
 #include "loss.h"
 #include "network.h"
+#include "optimizer.h"
 
 template<typename Type>
 Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
@@ -137,4 +138,7 @@ PYBIND11_MODULE(_matrix, m) {
         .def("forward", &MSE::forward)
         .def("backward", &MSE::backward);
 
+    py::class_<SGD>(m, "SGD")
+        .def(pybind11::init<double,double>())
+        .def("apply_gradient", &SGD::apply_gradient);
 }

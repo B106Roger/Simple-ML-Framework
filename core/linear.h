@@ -22,6 +22,8 @@ public:
     //////////////////////////////////////////////////////////
     Matrix forward(const Matrix &input_tensor);
     std::pair<Matrix,pybind11::tuple> backward(Matrix &gradient);
+    void apply_gradient(pybind11::tuple gradients);
+
 private:
     // configuration parameter
     size_t m_in_feat;

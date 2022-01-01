@@ -223,6 +223,16 @@ Matrix Matrix::operator*(double num) const
     return mat;
 }
 
+Matrix Matrix::operator/(double num) const
+{
+    Matrix mat(*this);
+    for (size_t i = 0; i < m_nrow*m_ncol; i++) {
+        mat.m_buffer[i] /= num;
+    }
+    return mat;
+}
+
+
 Matrix Matrix::T() const
 {
     Matrix result(m_ncol, m_nrow);

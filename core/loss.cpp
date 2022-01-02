@@ -34,3 +34,25 @@ Matrix MSE::backward()
 {
     return m_gradient;
 }
+
+////////////////////////////////////////////////////////////
+////////////    CategoricalCrossentropy   //////////////////
+////////////////////////////////////////////////////////////
+Matrix CategoricalCrossentropy::forward(const Matrix &prediction, const Matrix &ground_truth)
+{
+    Matrix mat_exp = prediction.exp();
+    Matrix mat_exp_sum(prediction.nrow(), 1);
+    for(size_t i = 0; i < prediction.nrow(); i++) {
+        for(size_t j = 0; j < prediction.ncol(); j++) {
+            mat_exp_sum(i,0) += mat_exp(i,j); 
+        }
+    }
+    // broadcasting
+    Matrix normalize = mat_exp / mat_exp_sum;
+    m_gradient = normalize - ground_truth;
+    return normalize.log() * ground_truth * -1.0;
+}
+Matrix CategoricalCrossentropy::backward()
+{
+    return m_gradient;
+}

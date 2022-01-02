@@ -32,3 +32,20 @@ def test_equal(mat1, ndarray):
                 print(f'wrong index: i: {i} j: {j}')
                 return False
     return True
+
+class AvgCounter:
+    def __init__(self):
+        self._total=0
+        self._value=0
+    def update(self, list_of_value):
+        self._total+=len(list_of_value)
+        self._value+=list_of_value.sum()
+    @property
+    def value(self):
+        return self._value
+    @property
+    def total(self):
+        return self._total
+    @property
+    def mean(self):
+        return self._value/self._total

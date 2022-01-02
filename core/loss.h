@@ -29,5 +29,15 @@ public:
     Matrix backward();
 };
 
+class CategoricalCrossentropy: public BaseLoss
+{
+public:
+    using BaseLoss::BaseLoss;
+    CategoricalCrossentropy(): BaseLoss() {};
+    ~CategoricalCrossentropy(){};
+    Matrix forward(const Matrix &prediction, const Matrix &ground_truth);
+    Matrix backward();
+};
+
 
 #endif

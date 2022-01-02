@@ -20,15 +20,30 @@ Matrix BaseLayer::forward(const Matrix &input_tensor)
     return this->forward(input_tensor);
 }
 
-std::pair<Matrix,pybind11::tuple> BaseLayer::backward(Matrix &gradient)
+std::pair<Matrix,std::vector<Matrix>> BaseLayer::backward(Matrix &gradient)
 {
-    return std::pair<Matrix,pybind11::tuple>(
+    return std::pair<Matrix,std::vector<Matrix>>(
         gradient, 
-        pybind11::make_tuple(gradient)
+        {gradient}
     );
 }
 
-void BaseLayer::apply_gradient(pybind11::tuple gradients)
+void BaseLayer::apply_gradient(std::vector<Matrix> gradients)
 {
-    
+
+}
+
+void BaseLayer::set_weight(std::vector<Matrix> weight_list)
+{
+
+}
+
+std::vector<Matrix> BaseLayer::get_weight()
+{
+    return {};
+}
+
+pybind11::dict BaseLayer::get_config() const
+{
+    return pybind11::dict();
 }

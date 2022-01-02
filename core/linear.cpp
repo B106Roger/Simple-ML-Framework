@@ -33,7 +33,7 @@ Matrix Linear::forward(const Matrix &input_tensor)
 }
 
 // gradient=(batch, out_feat)
-std::pair<Matrix,pybind11::tuple> Linear::backward(Matrix &gradient)
+std::pair<Matrix,std::vector<Matrix>> Linear::backward(Matrix &gradient)
 {
     // m_input=(batch, in_feat)
     // gradient=(batch, out_feat)
@@ -48,32 +48,38 @@ std::pair<Matrix,pybind11::tuple> Linear::backward(Matrix &gradient)
     {
         Matrix ones=Matrix::fillwith(1, gradient.nrow(), 1.0);
         m_bias_gradient = multiply_mkl(ones, gradient);
-        return std::pair<Matrix, pybind11::tuple>(
+        return std::pair<Matrix, std::vector<Matrix>>(
             dzda, 
-            pybind11::make_tuple(
-                m_weight_gradient, 
-                m_bias_gradient
-            )
+            {m_weight_gradient, m_bias_gradient}
         );
     }
 
-    return std::pair<Matrix, pybind11::tuple>(
+    return std::pair<Matrix, std::vector<Matrix>>(
             dzda, 
-            pybind11::make_tuple(m_weight_gradient)
+            {m_weight_gradient}
         );
 }
 
-void Linear::set_weight(pybind11::tuple py_tuple)
+std::vector<Matrix> Linear::get_weight()
+{
+    if (m_use_bias) {
+        return std::vector<Matrix>({m_weight, m_bias});
+    }
+    return std::vector<Matrix>({m_weight});
+
+}
+
+void Linear::set_weight(std::vector<Matrix> weight_list)
 {
     // check weight is compatible
-    Matrix weight = py_tuple[0].cast<Matrix>();
+    Matrix &weight = weight_list[0];
     if (weight.nrow() != m_in_feat || weight.ncol() != m_out_feat) 
         throw std::runtime_error("invalid weight shape for layer to consume");
     // assign weight
     m_weight = weight;
 
     if (m_use_bias) {
-        Matrix bias = py_tuple[1].cast<Matrix>();
+        Matrix &bias = weight_list[1];
         // check bias is compatible
         if (bias.nrow() != 1 || bias.ncol() != m_out_feat) 
             throw std::runtime_error("invalid bias shape for layer to consume");
@@ -82,12 +88,24 @@ void Linear::set_weight(pybind11::tuple py_tuple)
     }
 }
 
-void Linear::apply_gradient(pybind11::tuple gradients)
+void Linear::apply_gradient(std::vector<Matrix> gradients)
 {
-    Matrix w_grad = gradients[0].cast<Matrix>();
+    Matrix &w_grad = gradients[0];
     m_weight -= w_grad;
     if (m_use_bias) {
-        Matrix b_grad = gradients[1].cast<Matrix>();
+        Matrix &b_grad = gradients[1];
         m_bias -= b_grad;
     }
 }
+
+pybind11::dict Linear::get_config() const {
+    return pybind11::dict(
+        "in_dim"_a=m_in_feat,
+        "out_dim"_a=m_out_feat,
+        "use_bias"_a=m_use_bias,
+        "has_var"_a=m_has_trainable_var
+    );
+}
+
+
+

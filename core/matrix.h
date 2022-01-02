@@ -38,20 +38,48 @@ public:
     Matrix(Type* ptr, size_t nrow, size_t ncol);
     Matrix(const Matrix &target);
     ~Matrix();
-
-    // Math Operation Function
+    
+    ///////////////////////////////////////////
+    // Math Operation Function Start
+    ///////////////////////////////////////////
     double   operator() (size_t row, size_t col) const;
     double & operator() (size_t row, size_t col) ;
-    Matrix operator+(const Matrix &mat) const ;
-    void operator+=(const Matrix &mat) ;
-    Matrix operator-(const Matrix &mat) const ;
-    void operator-=(const Matrix &mat) ;
+
+    Matrix  operator+(const Matrix &mat) const ;
+    Matrix& operator+=(const Matrix &mat) ;
+    Matrix  operator+(double num) const;
+    Matrix& operator+=(double num);
+    friend Matrix operator+(double num, const Matrix &mat);
+
+    Matrix  operator-(const Matrix &mat) const ;
+    Matrix& operator-=(const Matrix &mat) ;
+    Matrix  operator-(double num) const;
+    Matrix& operator-=(double num);
+    friend Matrix operator-(double num, const Matrix &mat);
+
+    Matrix  operator*(const Matrix &mat) const;
+    Matrix& operator*=(const Matrix &mat);
+    Matrix  operator*(double num) const;
+    Matrix& operator*=(double num);
+    friend Matrix operator*(double num, const Matrix &mat);
+
+    Matrix  operator/(const Matrix &mat) const;
+    Matrix& operator/=(const Matrix &mat) ;
+    Matrix  operator/(double num) const;
+    Matrix& operator/=(double num);
+    friend Matrix operator/(double num, const Matrix &mat);
+    
     bool operator==(const Matrix &target) const;
     void operator=(const Matrix &target) ;
-    Matrix operator*(double num) const;
-    Matrix operator/(double num) const;
+
     Matrix power(double p) const;
-    
+    Matrix exp() const;
+    Matrix log() const;
+    Matrix sigmoid() const;
+    Matrix relu() const;
+    ///////////////////////////////////////////
+    // Math Operation Function End
+    ///////////////////////////////////////////
 
     Block get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row = false) const;
     void set_block(size_t block_size, size_t row_idx, size_t col_idx, const Matrix &mat) ;

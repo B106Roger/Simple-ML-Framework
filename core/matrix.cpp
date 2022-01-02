@@ -4,6 +4,80 @@
 #include <math.h>
 #include <mkl.h>
 #include "matrix.h"
+#include "debug.h"
+
+// Matrix = double + Matrix
+#define OPERATOR_DOUBLE_MATRIX(FUNCNAME,OPT) \
+Matrix FUNCNAME(double num, const Matrix &mat) \
+{\
+    Matrix result(mat);\
+    for(size_t i = 0; i < result.m_nrow*result.m_ncol; i++){\
+        result.m_buffer[i] = num OPT result.m_buffer[i];\
+    }\
+    return result;\
+}\
+
+// Matrix = Matrix + double
+#define OPERATOR_MATRIX_DOUBLE(FUNCNAME,OPT)\
+Matrix Matrix::FUNCNAME(double num) const\
+{\
+    Matrix result(m_nrow,m_ncol);\
+    for(size_t i = 0; i < m_nrow*m_ncol; i++){\
+        result.m_buffer[i] = m_buffer[i] OPT num;\
+    }\
+    return result;\
+}\
+
+// Matrix = Matrix + Matrix
+#define OPERATOR_MATRIX_MATRIX(FUNCNAME,OPT)\
+Matrix Matrix::FUNCNAME(const Matrix &mat) const \
+{\
+    size_t row=std::max(mat.m_nrow, m_nrow);\
+    size_t col=std::max(mat.m_ncol, m_ncol);\
+    if (DEBUG) {\
+    if (mat.m_nrow != m_nrow && !(mat.m_nrow == 1 || m_nrow == 1)) \
+        throw std::runtime_error("The shape is not broadcastable in row.");\
+    else if (mat.m_ncol != m_ncol && !(mat.m_ncol == 1 || m_ncol == 1))\
+        throw std::runtime_error("The shape is not broadcastable in column.");\
+    }\
+    Matrix result(row, col);\
+    if (mat.m_nrow == m_nrow && mat.m_ncol == m_ncol) {\
+        for(size_t i = 0; i < m_nrow*m_ncol; i++){\
+            result.m_buffer[i] = m_buffer[i] OPT mat.m_buffer[i];\
+        }\
+        return result;\
+    } else {\
+        for (size_t i = 0; i < row; i+=1) {\
+            for (size_t j = 0; j < col; j+=1) {\
+                result.m_buffer[i*col+j] = \
+                    (*this)(i % m_nrow,     j % m_ncol) OPT \
+                        mat(i % mat.m_nrow, j % mat.m_ncol);\
+            }\
+        }\
+        return result;\
+    }\
+}\
+
+// Matrix += double
+#define OPERATOR_ASSIGN_MATRIX_DOUBLE(FUNCNAME,OPT)\
+Matrix& Matrix::FUNCNAME(double num) \
+{\
+    for(size_t i = 0; i < m_nrow*m_ncol; i++){\
+        m_buffer[i] OPT num;\
+    }\
+    return *this;\
+}\
+
+// Matrix += Matrix
+#define OPERATOR_ASSIGN_MATRIX_MATRIX(FUNCNAME,OPT)\
+Matrix& Matrix::FUNCNAME(const Matrix &mat) {\
+    for (size_t i=0; i< m_nrow; i+=1) {\
+        for (size_t j=0; j<m_ncol; j+=1) {\
+            m_buffer[i*m_ncol+j] OPT mat(i,j);\
+        }\
+    }\
+    return *this;\
+}\
 
 namespace py = pybind11;
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,15 +184,8 @@ Matrix::~Matrix() {
 
     if (m_buffer != NULL)
     {
-        // std::cout << "before calling matrix desstructor." << 
-        //     " row: " << m_nrow << 
-        //     " col: " << m_ncol <<
-        //     " ptr: " << m_buffer << std::endl;
         delete[] m_buffer; 
         m_nrow=m_ncol = 0;
-        // std::cout << "after calling matrix desstructor." << 
-        //     " row: " << m_nrow << 
-        //     " col: " << m_ncol << std::endl;
     }
 }
 
@@ -141,49 +208,32 @@ double & Matrix::operator() (size_t row, size_t col) {       // for setitem
     return m_buffer[row*m_ncol + col];
 }
 // implement in vectorize mode
-Matrix Matrix::operator+(const Matrix &mat) const {
-    size_t row=std::max(mat.m_nrow, m_nrow);
-    size_t col=std::max(mat.m_ncol, m_ncol);
-    
-    // check broadcastable
-    if (mat.m_nrow != m_nrow && !(mat.m_nrow == 1 || m_nrow == 1)) 
-        throw std::runtime_error("The shape is not broadcastable in row.");
-    else if (mat.m_ncol != m_ncol && !(mat.m_ncol == 1 || m_ncol == 1))
-        throw std::runtime_error("The shape is not broadcastable in column.");
 
-    Matrix result(row, col);
-    for (size_t i = 0; i < row; i+=1) {
-        for (size_t j = 0; j < col; j+=1) {
-            result.m_buffer[i*col+j] = 
-                (*this)(i % m_nrow,     j % m_ncol) + 
-                    mat(i % mat.m_nrow, j % mat.m_ncol);
-        }
-    }
-    return result;
-}
-void Matrix::operator+=(const Matrix &mat) {
-    for (size_t i=0; i< m_nrow; i+=1) {
-        for (size_t j=0; j<m_ncol; j+=1) {
-            m_buffer[i*m_ncol+j]+=mat(i,j);
-        }
-    }
-}
-Matrix Matrix::operator-(const Matrix &mat) const {
-    Matrix result(*this);
-    for (size_t i=0; i< m_nrow; i+=1) {
-        for (size_t j=0; j<m_ncol; j+=1) {
-            result.m_buffer[i*m_ncol+j]-=mat(i,j);
-        }
-    }
-    return result;
-}
-void Matrix::operator-=(const Matrix &mat) {
-    for (size_t i=0; i< m_nrow; i+=1) {
-        for (size_t j=0; j<m_ncol; j+=1) {
-            m_buffer[i*m_ncol+j]-=mat(i,j);
-        }
-    }
-}
+OPERATOR_DOUBLE_MATRIX(operator+,+)
+OPERATOR_DOUBLE_MATRIX(operator-,-)
+OPERATOR_DOUBLE_MATRIX(operator*,*)
+OPERATOR_DOUBLE_MATRIX(operator/,/)
+
+OPERATOR_MATRIX_DOUBLE(operator+,+)
+OPERATOR_MATRIX_DOUBLE(operator-,-)
+OPERATOR_MATRIX_DOUBLE(operator*,*)
+OPERATOR_MATRIX_DOUBLE(operator/,/)
+
+OPERATOR_MATRIX_MATRIX(operator+,+)
+OPERATOR_MATRIX_MATRIX(operator-,-)
+OPERATOR_MATRIX_MATRIX(operator*,*)
+OPERATOR_MATRIX_MATRIX(operator/,/)
+
+OPERATOR_ASSIGN_MATRIX_DOUBLE(operator+=,+=)
+OPERATOR_ASSIGN_MATRIX_DOUBLE(operator-=,-=)
+OPERATOR_ASSIGN_MATRIX_DOUBLE(operator*=,*=)
+OPERATOR_ASSIGN_MATRIX_DOUBLE(operator/=,/=)
+
+OPERATOR_ASSIGN_MATRIX_MATRIX(operator+=,+=)
+OPERATOR_ASSIGN_MATRIX_MATRIX(operator-=,-=)
+OPERATOR_ASSIGN_MATRIX_MATRIX(operator*=,*=)
+OPERATOR_ASSIGN_MATRIX_MATRIX(operator/=,/=)
+
 void Matrix::operator=(const Matrix &target) {
     if (m_buffer != NULL)
         delete[] m_buffer;
@@ -205,6 +255,7 @@ bool Matrix::operator==(const Matrix &target) const{
         return true;
     }
 }
+
 Matrix Matrix::power(double p) const
 {
     size_t nelement=m_ncol*m_nrow;
@@ -214,24 +265,39 @@ Matrix Matrix::power(double p) const
     }
     return result;
 }
-Matrix Matrix::operator*(double num) const
+Matrix Matrix::exp() const
 {
-    Matrix mat(*this);
-    for (size_t i = 0; i < m_nrow*m_ncol; i++) {
-        mat.m_buffer[i] *= num;
+    size_t nelement=m_ncol*m_nrow;
+    Matrix result(m_nrow, m_ncol);
+    for(size_t i = 0; i < nelement; i++){
+        result.m_buffer[i] = std::exp(m_buffer[i]);
     }
-    return mat;
+    return result;
 }
-
-Matrix Matrix::operator/(double num) const
+Matrix Matrix::log() const
 {
-    Matrix mat(*this);
-    for (size_t i = 0; i < m_nrow*m_ncol; i++) {
-        mat.m_buffer[i] /= num;
+    size_t nelement=m_ncol*m_nrow;
+    Matrix result(m_nrow, m_ncol);
+    for(size_t i = 0; i < nelement; i++){
+        result.m_buffer[i] = std::log(m_buffer[i]);
     }
-    return mat;
+    return result;
 }
-
+Matrix Matrix::sigmoid() const {
+    Matrix result(*this);
+    for (size_t i = 0; i < m_nrow*m_ncol; i++) {
+        result.m_buffer[i] = 1.0 / (1.0 + std::exp(-result.m_buffer[i]));
+    }
+    return result;
+}
+Matrix Matrix::relu() const {
+    Matrix result(*this);
+    for(size_t i = 0; i < result.m_nrow * result.m_ncol; i++) {
+        if (result.m_buffer[i] < 0)
+            result.m_buffer[i] = 0.0;
+    }
+    return result;
+}
 
 Matrix Matrix::T() const
 {

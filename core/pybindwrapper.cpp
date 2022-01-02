@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
+#include <pybind11/operators.h>
 #include <iostream>
 #include <math.h>
 #include <mkl.h>
@@ -10,7 +11,7 @@
 #include "loss.h"
 #include "network.h"
 #include "optimizer.h"
-
+#include "activation.h"
 template<typename Type>
 Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
     :m_nrow(nrow), m_ncol(ncol), m_buffer(NULL)
@@ -96,16 +97,55 @@ PYBIND11_MODULE(_matrix, m) {
         .def(pybind11::init<int,int>())
         .def("__setitem__", [](Matrix &mat, std::pair<size_t, size_t> idx, double val) { return mat(idx.first, idx.second) = val; })
         .def("__getitem__", [](const Matrix &mat, std::pair<size_t, size_t> idx) { return mat(idx.first, idx.second); })
-        .def("__add__", [](const Matrix &mat1, const Matrix &mat2) {return mat1 + mat2;})
         .def("__eq__", [](const Matrix &mat1, const Matrix &mat2) { return mat1 == mat2; })
+
+        .def(py::self + py::self)
+        .def(py::self - py::self)
+        .def(py::self * py::self)
+        .def(py::self / py::self)
+
+        .def(py::self + double())
+        .def(py::self - double())
+        .def(py::self * double())
+        .def(py::self / double())
+
+        // .def("__add__", [](const Matrix &mat, int32_t num) {return mat + double(num);}, py::is_operator())
+        // .def("__sub__", [](const Matrix &mat, int32_t num) {return mat - double(num); }, py::is_operator())
+        // .def("__mul__", [](const Matrix &mat, int32_t num) {return mat * double(num); }, py::is_operator())
+        // .def("__truediv__", [](const Matrix &mat, int32_t num) {return mat / double(num); }, py::is_operator())
+
+        // .def("__add__", [](const Matrix &mat, int64_t num) {return mat + double(num);}, py::is_operator())
+        // .def("__sub__", [](const Matrix &mat, int64_t num) {return mat - double(num); }, py::is_operator())
+        // .def("__mul__", [](const Matrix &mat, int64_t num) {return mat * double(num); }, py::is_operator())
+        // .def("__truediv__", [](const Matrix &mat, int64_t num) {return mat / double(num); }, py::is_operator())
+
+        .def(double() + py::self)
+        .def(double() - py::self)
+        .def(double() * py::self)
+        .def(double() / py::self)
+
+        .def(py::self += double())
+        .def(py::self -= double())
+        .def(py::self *= double())
+        .def(py::self /= double())
+
+        .def(py::self += py::self)
+        .def(py::self -= py::self)
+        .def(py::self *= py::self)
+        .def(py::self /= py::self)
+
         .def("T", &Matrix::T)
         .def_property_readonly("nrow", &Matrix::nrow)
         .def_property_readonly("ncol", &Matrix::ncol)
         .def_property("array", &Matrix::get_array, nullptr);
 
+    // *********************************************
+    // Layers
+    // *********************************************
 
     py::class_<BaseLayer>(m, "BaseLayer")
-        .def(pybind11::init<bool,bool>());
+        .def(pybind11::init<bool,bool>())
+        .def("get_config", &BaseLayer::get_config);
 
     py::class_<Linear, BaseLayer>(m, "Linear")
         .def(pybind11::init<int,int,bool,bool>()) 
@@ -118,6 +158,22 @@ PYBIND11_MODULE(_matrix, m) {
         .def_property_readonly("m_weight", &Linear::weight)
         .def_property_readonly("m_bias", &Linear::bias);
 
+    // *********************************************
+    // Activations
+    // *********************************************
+
+    py::class_<Sigmoid, BaseLayer>(m, "Sigmoid")
+        .def(pybind11::init<>())
+        .def("__call__", &Sigmoid::forward);
+
+    py::class_<ReLU, BaseLayer>(m, "ReLU")
+        .def(pybind11::init<>())
+        .def("__call__", &ReLU::forward);
+
+    // *********************************************
+    // Model Structure
+    // *********************************************
+
     py::class_<Network>(m, "Network")
         .def(pybind11::init<std::vector<BaseLayer*>>())
         .def(pybind11::init<std::vector<int>>())
@@ -126,6 +182,10 @@ PYBIND11_MODULE(_matrix, m) {
         })
         .def("backward", &Network::backward)
         .def_property("layers", &Network::get_layers, nullptr);
+
+    // *********************************************
+    // Losses
+    // *********************************************
 
     py::class_<BaseLoss>(m, "BaseLoss")
         .def(pybind11::init<>())
@@ -138,7 +198,18 @@ PYBIND11_MODULE(_matrix, m) {
         .def("forward", &MSE::forward)
         .def("backward", &MSE::backward);
 
+    py::class_<CategoricalCrossentropy, BaseLoss>(m, "CategoricalCrossentropy")
+        .def(pybind11::init<>())
+        .def("forward", &CategoricalCrossentropy::forward)
+        .def("backward", &CategoricalCrossentropy::backward);
+
+    // *********************************************
+    // Optimizers
+    // *********************************************
+
     py::class_<SGD>(m, "SGD")
         .def(pybind11::init<double,double>())
         .def("apply_gradient", &SGD::apply_gradient);
+
+
 }

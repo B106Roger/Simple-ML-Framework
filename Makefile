@@ -32,9 +32,10 @@ ${MATLIB}: ./core/pybindwrapper.cpp ./core/matrix.cpp ./core/base_layer.cpp ./co
 	
 
 test: ${MATLIB}
-#	python performance_test.py
-	python -m unittest main_matrix_test.py
-	python -m unittest main_layer_test.py
+	python -m unittest main_matrix_test.py -v
+	python -m unittest main_performance_test.py -v
+#	python -m unittest main_layer_test.py
+#	python -m unittest main_mnist_test.py
 
 
 clean:

@@ -5,6 +5,7 @@
 
 #ifndef __LINEAR__
 #define __LINEAR__
+using namespace pybind11::literals;
 class Linear: public BaseLayer
 {
 public:
@@ -12,8 +13,7 @@ public:
     Linear(int in, int out, bool use_bias=false, bool trainable=true);
     ~Linear();
 
-    void set_weight(pybind11::tuple py_tuple);
-    pybind11::tuple get_weight() {return pybind11::make_tuple(m_weight, m_bias);}
+
     Matrix& weight() {return m_weight;}
     Matrix& bias() {return m_bias;}
 
@@ -21,8 +21,11 @@ public:
     /////////////////// Virtual Function /////////////////////
     //////////////////////////////////////////////////////////
     Matrix forward(const Matrix &input_tensor);
-    std::pair<Matrix,pybind11::tuple> backward(Matrix &gradient);
-    void apply_gradient(pybind11::tuple gradients);
+    std::pair<Matrix,std::vector<Matrix>> backward(Matrix &gradient);
+    void apply_gradient(std::vector<Matrix> gradients);
+    void set_weight(std::vector<Matrix> weight_list);
+    std::vector<Matrix> get_weight();
+    pybind11::dict get_config() const;
 
 private:
     // configuration parameter

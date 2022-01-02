@@ -210,18 +210,6 @@ class TestStringMethods(unittest.TestCase):
             print(f'loss gradient: {loss_fn.backward().array}')
             gradients=network.backward(loss_fn.backward())
             opt.apply_gradient(network, gradients)
-            # for i, (w_grad, b_grad) in enumerate(gradients):
-            #     print(f'w_grad: {w_grad.array.flatten()}')
-            #     print(f'b_grad: {b_grad.array.flatten()}')
-            #     w_weight, b_weight=network.layers[i].get_weight()
-            #     # print(f'w_weight: {w_weight.array.flatten()}')
-            #     # print(f'b_weight: {b_weight.array.flatten()}')
-            #     lr=0.00001
-            #     w_weight = mat.Matrix(w_weight.array-w_grad.array*lr)
-            #     b_weight = mat.Matrix(b_weight.array-b_grad.array*lr)
-            #     # print(w_weight.array)
-            #     # print(b_weight.array)
-            #     network.layers[i].set_weight((w_weight, b_weight))
             print('-'*100)
         print('gradients', gradients) 
 

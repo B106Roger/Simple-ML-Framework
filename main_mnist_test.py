@@ -1,11 +1,7 @@
 import unittest
 import numpy as np
-import _matrix as mat
-from tqdm import tqdm
+import lib._matrix as mat
 from testcase.test_util import (
-    print_matrix,
-    init_matrix,
-    print_ndarray,
     test_equal,
     AvgCounter
 )
@@ -113,7 +109,6 @@ class TestStringMethods(unittest.TestCase):
 
         for layer in network.layers:
             config=layer.get_config()
-            print(config)
             if 'in_dim' not in config.keys():
                 continue
             in_feat = config['in_dim']
@@ -149,7 +144,7 @@ class TestStringMethods(unittest.TestCase):
                 # loss=(batch, 10)
                 step_counter_loss.update(loss.array.mean(axis=-1))
                 step_counter_acc.update(Mresult.array.argmax(-1)==batch_label)
-                print(f'\repoch {epoch:3d} step: {st_idx/batch_size+1} {step_counter_loss.total}/{len(train_full)}: Loss/Acc = {step_counter_loss.mean:6.4f}/{step_counter_acc.mean:6.4f}', end='')
+                print(f'\repoch {epoch:3d} {step_counter_loss.total}/{len(train_full)}: Loss/Acc = {step_counter_loss.mean:6.4f}/{step_counter_acc.mean:6.4f}', end='')
                 gradients=network.backward(loss_fn.backward())
                 opt.apply_gradient(network, gradients)
             print()
@@ -162,7 +157,6 @@ class TestStringMethods(unittest.TestCase):
 
         ]
         network=mat.Network(a)
-        
         loss_fn=mat.CategoricalCrossentropy()
         # loss_fn=mat.MSE()
 
@@ -180,7 +174,6 @@ class TestStringMethods(unittest.TestCase):
 
         for layer in network.layers:
             config=layer.get_config()
-            print(config)
             if 'in_dim' not in config.keys():
                 continue
             in_feat = config['in_dim']
@@ -213,12 +206,13 @@ class TestStringMethods(unittest.TestCase):
 
                 Mresult=network(Mdata)
                 loss=loss_fn(Mresult, Mgth)
+                gradients=network.backward(loss_fn.backward())
+                opt.apply_gradient(network, gradients)
                 # loss=(batch, 10)
                 step_counter_loss.update(loss.array.mean(axis=-1))
                 step_counter_acc.update(Mresult.array.argmax(-1)==batch_label)
-                print(f'\repoch {epoch:3d} step: {st_idx/batch_size+1} {step_counter_loss.total}/{len(train_full)}: Loss/Acc = {step_counter_loss.mean:6.4f}/{step_counter_acc.mean:6.4f}', end='')
-                gradients=network.backward(loss_fn.backward())
-                opt.apply_gradient(network, gradients)
+                print(f'\repoch {epoch:3d} {step_counter_loss.total}/{len(train_full)}: Loss/Acc = {step_counter_loss.mean:6.4f}/{step_counter_acc.mean:6.4f}', end='')
+
             print()
 if __name__ == '__main__':
     unittest.main()

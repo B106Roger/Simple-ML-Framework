@@ -5,6 +5,7 @@
 #include <mkl.h>
 #include "matrix.h"
 #include "debug.h"
+#include <immintrin.h>
 
 // Matrix = double + Matrix
 #define OPERATOR_DOUBLE_MATRIX(FUNCNAME,OPT) \
@@ -28,8 +29,25 @@ Matrix Matrix::FUNCNAME(double num) const\
     return result;\
 }\
 
-// Matrix = Matrix + Matrix
-#define OPERATOR_MATRIX_MATRIX(FUNCNAME,OPT)\
+// Matrix = Matrix + double
+#define SIMD_OPERATOR_MATRIX_DOUBLE(FUNCNAME,SIMD)\
+Matrix Matrix::FUNCNAME(double num) const\
+{\
+    Matrix result(m_nrow,m_ncol);\
+    const double scalars[4] = {num, num, num, num};\
+    size_t i = 0 ;\
+    for(i = 0; i < m_nrow*m_ncol; i+=4){\
+        __m256d * ma = (__m256d *) (&m_buffer[i]);\
+        __m256d * mb = (__m256d *) (&scalars[0]);\
+        __m256d * mr = (__m256d *) (&result.m_buffer[i]);\
+        *mr = SIMD (*ma, *mb);\
+    }\
+    return result;\
+}\
+
+
+// Matrix = Matrix + Matrix// _mm256_add_pd, _mm256_sub_pd, _mm256_mul_pd, _mm256_div_pd
+#define SIMD_OPERATOR_MATRIX_MATRIX(FUNCNAME,OPT,SIMD)\
 Matrix Matrix::FUNCNAME(const Matrix &mat) const \
 {\
     size_t row=std::max(mat.m_nrow, m_nrow);\
@@ -42,8 +60,12 @@ Matrix Matrix::FUNCNAME(const Matrix &mat) const \
     }\
     Matrix result(row, col);\
     if (mat.m_nrow == m_nrow && mat.m_ncol == m_ncol) {\
-        for(size_t i = 0; i < m_nrow*m_ncol; i++){\
-            result.m_buffer[i] = m_buffer[i] OPT mat.m_buffer[i];\
+        size_t i = 0u;\
+        for(i = 0; i < m_nrow*m_ncol; i+=4){\
+            __m256d * ma = (__m256d *) (&m_buffer[i]);\
+            __m256d * mb = (__m256d *) (&mat.m_buffer[i]);\
+            __m256d * mr = (__m256d *) (&result.m_buffer[i]);\
+            *mr = SIMD (*ma, *mb);\
         }\
         return result;\
     } else {\
@@ -57,6 +79,8 @@ Matrix Matrix::FUNCNAME(const Matrix &mat) const \
         return result;\
     }\
 }\
+
+
 
 // Matrix += double
 #define OPERATOR_ASSIGN_MATRIX_DOUBLE(FUNCNAME,OPT)\
@@ -88,19 +112,24 @@ Block::Block(size_t nrow, size_t ncol, bool colmajor):
     m_nrow(nrow), m_ncol(ncol), m_buffer(NULL), m_row_stride(0), m_colmajor(colmajor)
 {
     if (m_colmajor)
-        m_buffer=new double[m_nrow*m_ncol];
+    {
+        // m_buffer=new double[m_nrow*m_ncol];
+        m_buffer = (double*)aligned_alloc(32, m_nrow*m_ncol * sizeof(double));
+    }
 }
 Block::Block(const Block &block):
     m_nrow(block.m_nrow), m_ncol(block.m_ncol), m_buffer(NULL), m_row_stride(0), m_colmajor(block.m_colmajor)
 {
     if (block.m_colmajor)
     {
-        m_buffer=new double[m_nrow*m_ncol];
+        // m_buffer=new double[m_nrow*m_ncol];
+        m_buffer = (double*)aligned_alloc(32, m_nrow*m_ncol * sizeof(double));
         memcpy(m_buffer, block.m_buffer, sizeof(double) * m_nrow * m_ncol);
     }
 }
 Block::~Block() { 
-    if (m_colmajor) delete[] m_buffer;
+    if (m_colmajor)
+        free(m_buffer);
     m_buffer = NULL;
 }
 double   Block::operator() (size_t row, size_t col) const { // for getitem
@@ -142,9 +171,8 @@ Matrix::Matrix(size_t nrow, size_t ncol)
   : m_nrow(nrow), m_ncol(ncol), m_buffer(NULL)
 {
     size_t nelement = nrow * ncol;
-    // std::cout << "m_nrow: " << m_nrow << " m_ncol: " << m_ncol <<std::endl;
-    m_buffer = new double[nelement];
-    // std::cout << "nelement: " << nelement << " ptr: " << m_buffer << std::endl;
+    // m_buffer = new double[nelement];
+    m_buffer = (double*)aligned_alloc(32, nelement * sizeof(double));
     if (m_buffer!=NULL)
         memset(m_buffer, 0, nelement*sizeof(double));
     else 
@@ -157,7 +185,8 @@ Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
 {  
     
     size_t nelement = nrow * ncol;
-    m_buffer = new double[nelement];
+    // m_buffer = new double[nelement];
+    m_buffer = (double*)aligned_alloc(32, nelement * sizeof(double));
     for(size_t i =0; i < nelement; i++) 
     {
         m_buffer[i] = (double)ptr[i];
@@ -167,7 +196,9 @@ Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
 Matrix::Matrix(const Matrix &target) {
     m_nrow=target.nrow();
     m_ncol=target.ncol();
-    m_buffer = new double[m_nrow*m_ncol];
+    // m_buffer = new double[m_nrow*m_ncol];
+    m_buffer = (double*)aligned_alloc(32, m_nrow*m_ncol * sizeof(double));
+
     memcpy(m_buffer, target.m_buffer, sizeof(double) * m_nrow * m_ncol);
 }
 
@@ -184,7 +215,7 @@ Matrix::~Matrix() {
 
     if (m_buffer != NULL)
     {
-        delete[] m_buffer; 
+        free(m_buffer);
         m_nrow=m_ncol = 0;
     }
 }
@@ -214,15 +245,25 @@ OPERATOR_DOUBLE_MATRIX(operator-,-)
 OPERATOR_DOUBLE_MATRIX(operator*,*)
 OPERATOR_DOUBLE_MATRIX(operator/,/)
 
-OPERATOR_MATRIX_DOUBLE(operator+,+)
-OPERATOR_MATRIX_DOUBLE(operator-,-)
-OPERATOR_MATRIX_DOUBLE(operator*,*)
-OPERATOR_MATRIX_DOUBLE(operator/,/)
+// OPERATOR_MATRIX_DOUBLE(operator+,+)
+// OPERATOR_MATRIX_DOUBLE(operator-,-)
+// OPERATOR_MATRIX_DOUBLE(operator*,*)
+// OPERATOR_MATRIX_DOUBLE(operator/,/)
 
-OPERATOR_MATRIX_MATRIX(operator+,+)
-OPERATOR_MATRIX_MATRIX(operator-,-)
-OPERATOR_MATRIX_MATRIX(operator*,*)
-OPERATOR_MATRIX_MATRIX(operator/,/)
+SIMD_OPERATOR_MATRIX_DOUBLE(operator+,_mm256_add_pd)
+SIMD_OPERATOR_MATRIX_DOUBLE(operator-,_mm256_sub_pd)
+SIMD_OPERATOR_MATRIX_DOUBLE(operator*,_mm256_mul_pd)
+SIMD_OPERATOR_MATRIX_DOUBLE(operator/,_mm256_div_pd)
+
+// OPERATOR_MATRIX_MATRIX(operator+,+)
+// OPERATOR_MATRIX_MATRIX(operator-,-)
+// OPERATOR_MATRIX_MATRIX(operator*,*)
+// OPERATOR_MATRIX_MATRIX(operator/,/)
+
+SIMD_OPERATOR_MATRIX_MATRIX(operator+,+,_mm256_add_pd)
+SIMD_OPERATOR_MATRIX_MATRIX(operator-,-,_mm256_sub_pd)
+SIMD_OPERATOR_MATRIX_MATRIX(operator*,*,_mm256_mul_pd)
+SIMD_OPERATOR_MATRIX_MATRIX(operator/,/,_mm256_div_pd)
 
 OPERATOR_ASSIGN_MATRIX_DOUBLE(operator+=,+=)
 OPERATOR_ASSIGN_MATRIX_DOUBLE(operator-=,-=)
@@ -236,11 +277,11 @@ OPERATOR_ASSIGN_MATRIX_MATRIX(operator/=,/=)
 
 void Matrix::operator=(const Matrix &target) {
     if (m_buffer != NULL)
-        delete[] m_buffer;
+        free(m_buffer);
     m_nrow=target.nrow();
     m_ncol=target.ncol();
-    m_buffer = new double[m_nrow*m_ncol];
-    // std::cout << "operator= ptr: " << m_buffer << std::endl;
+    // m_buffer = new double[m_nrow*m_ncol];
+    m_buffer = (double*)aligned_alloc(32, m_nrow*m_ncol * sizeof(double));
     memcpy(m_buffer, target.m_buffer, sizeof(double) * m_nrow * m_ncol);
 }
 bool Matrix::operator==(const Matrix &target) const{
@@ -430,6 +471,7 @@ Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2) {
       , ret.m_buffer /* double * c */
       , ret.ncol() /* const MKL_INT ldc */
     );
+
     return ret;
 }
 

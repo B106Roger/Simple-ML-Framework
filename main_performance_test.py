@@ -1,12 +1,10 @@
 import unittest
 import numpy as np
-from numpy.core import numeric
-import _matrix
+import lib256._matrix as _matrix
 import timeit
+import time
 from testcase.test_util import (
-    print_matrix,
     init_matrix,
-    print_ndarray,
     test_equal,
 )
 
@@ -66,7 +64,7 @@ class TestStringMethods(unittest.TestCase):
 
         a=_matrix.Matrix(row,col)
         init_matrix(a)
-        a = a + 1
+        # a = a + 1
         b = _matrix.Matrix(a)
 
         c=np.arange(0, row*col).reshape((row,col)).astype(np.float64) + 1
@@ -74,13 +72,17 @@ class TestStringMethods(unittest.TestCase):
 
         a_time_list=[]
         b_time_list=[]
+        aa_time_list=[]
         c_time_list=[]
         d_time_list=[]
+        cc_time_list=[]
         for iidx in range(40):
-            op='__mul__'
+            op='__add__'
             # Matrix Library Result
-            a_time=timeit.timeit(lambda:getattr(a, op)(fp64), number=self.loop)
-            b_time=timeit.timeit(lambda:getattr(a, op)(int32), number=self.loop)
+            a_time=timeit.timeit(lambda:getattr(a, op)(fp64), number=self.loop, timer=time.process_time)
+            b_time=timeit.timeit(lambda:getattr(a, op)(int32), number=self.loop, timer=time.process_time)
+            aa_time=timeit.timeit(lambda:getattr(a, op)(b), number=self.loop, timer=time.process_time)
+
 
             # print(f"{'Matrix = Matrix + Matrix':25s}, {timeit.timeit(lambda:getattr(a, op)(a ), number=self.loop):8.6f}")
             # print(f"{'Matrix = Matrix + Matrix':25s}, {timeit.timeit(lambda:getattr(a, op)(b ), number=self.loop):8.6f}")
@@ -89,26 +91,30 @@ class TestStringMethods(unittest.TestCase):
             # print(f"diff: {b_time-a_time:8.6f}")
             a_time_list.append(a_time)
             b_time_list.append(b_time)
-
+            aa_time_list.append(aa_time)
 
             # print()
             # Numpy Libray Result
-            c_time=timeit.timeit(lambda:getattr(c, op)(fp64), number=self.loop)
-            d_time=timeit.timeit(lambda:getattr(c, op)(int32), number=self.loop)
-
+            c_time=timeit.timeit(lambda:getattr(c, op)(fp64), number=self.loop, timer=time.process_time)
+            d_time=timeit.timeit(lambda:getattr(c, op)(int32), number=self.loop, timer=time.process_time)
+            cc_time=timeit.timeit(lambda:getattr(c, op)(d), number=self.loop, timer=time.process_time)
             # print(f"{'NP_FP64 + NP_FP64':25s}, {timeit.timeit(lambda:getattr(c, op)(c ), number=self.loop):8.6f}")
             # print(f"{'NP_FP64 + NP_FP64':25s}, {timeit.timeit(lambda:getattr(c, op)(d ), number=self.loop):8.6f}")
             # print(f"{'NP_FP64 + double ':25s}, {c_time:8.6f}")
             # print(f"{'NP_FP64 + int    ':25s}, {d_time:8.6f}")
             c_time_list.append(c_time)
             d_time_list.append(d_time)
+            cc_time_list.append(cc_time)
             
-            print(f'{op:12s} PASS')
+            # print(f'{op:12s} PASS')
 
         print('Matrix = Matrix + double',np.mean(a_time_list))
         print('Matrix = Matrix + int   ',np.mean(b_time_list))
+        print('Matrix = Matrix + Matrix',np.mean(aa_time_list))
         print('NP_FP64 + double ',np.mean(c_time_list))
         print('NP_FP64 + int    ',np.mean(d_time_list))
+        print('NP_FP64 + NP_FP64',np.mean(cc_time_list))
+
 
 
 if __name__ == '__main__':

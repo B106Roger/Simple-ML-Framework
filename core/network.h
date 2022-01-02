@@ -8,8 +8,7 @@ class Network
 {
 public:
     Network(std::vector<BaseLayer*> layers);
-    Network(std::vector<int> layers);
-
+    
     ~Network();
     Matrix forward(Matrix input_tensor);
     std::vector<std::vector<Matrix>> backward(Matrix gradient);

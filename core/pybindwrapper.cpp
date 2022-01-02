@@ -62,8 +62,6 @@ PYBIND11_MODULE(_matrix, m) {
         // given numpy array instance and convert to Matrix object
         .def(py::init([](py::buffer b)->Matrix {
             py::buffer_info info = b.request();
-            // if (info.ndim != 2)
-            //     throw std::runtime_error("Incompatible buffer dimension!");
             size_t row = info.shape[0], col = info.shape[1];
             
             // Type Determine
@@ -109,15 +107,15 @@ PYBIND11_MODULE(_matrix, m) {
         .def(py::self * double())
         .def(py::self / double())
 
-        // .def("__add__", [](const Matrix &mat, int32_t num) {return mat + double(num);}, py::is_operator())
-        // .def("__sub__", [](const Matrix &mat, int32_t num) {return mat - double(num); }, py::is_operator())
-        // .def("__mul__", [](const Matrix &mat, int32_t num) {return mat * double(num); }, py::is_operator())
-        // .def("__truediv__", [](const Matrix &mat, int32_t num) {return mat / double(num); }, py::is_operator())
+        .def("__add__", [](const Matrix &mat, int32_t num) {return mat + double(num);}, py::is_operator())
+        .def("__sub__", [](const Matrix &mat, int32_t num) {return mat - double(num); }, py::is_operator())
+        .def("__mul__", [](const Matrix &mat, int32_t num) {return mat * double(num); }, py::is_operator())
+        .def("__truediv__", [](const Matrix &mat, int32_t num) {return mat / double(num); }, py::is_operator())
 
-        // .def("__add__", [](const Matrix &mat, int64_t num) {return mat + double(num);}, py::is_operator())
-        // .def("__sub__", [](const Matrix &mat, int64_t num) {return mat - double(num); }, py::is_operator())
-        // .def("__mul__", [](const Matrix &mat, int64_t num) {return mat * double(num); }, py::is_operator())
-        // .def("__truediv__", [](const Matrix &mat, int64_t num) {return mat / double(num); }, py::is_operator())
+        .def("__add__", [](const Matrix &mat, int64_t num) {return mat + double(num);}, py::is_operator())
+        .def("__sub__", [](const Matrix &mat, int64_t num) {return mat - double(num); }, py::is_operator())
+        .def("__mul__", [](const Matrix &mat, int64_t num) {return mat * double(num); }, py::is_operator())
+        .def("__truediv__", [](const Matrix &mat, int64_t num) {return mat / double(num); }, py::is_operator())
 
         .def(double() + py::self)
         .def(double() - py::self)
@@ -176,7 +174,6 @@ PYBIND11_MODULE(_matrix, m) {
 
     py::class_<Network>(m, "Network")
         .def(pybind11::init<std::vector<BaseLayer*>>())
-        .def(pybind11::init<std::vector<int>>())
         .def("__call__", [](Network &net, const Matrix &mat1) {
             return net.forward(mat1); 
         })

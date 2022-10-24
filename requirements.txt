@@ -1,0 +1,6 @@
+numpy
+unittest
+matplotlib
+opencv-python==4.3.*
+pybind11
+mkl

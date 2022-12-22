@@ -5,10 +5,10 @@ Network::Network(std::vector<BaseLayer*>  layers) {
     m_layers = layers;
 }
 
-Network::Network(std::vector<int>  layers) {
-        for(size_t i =0; i < layers.size(); i++) 
-            std::cout << layers[i] << std::endl;
-    }
+// Network::Network(std::vector<int>  layers) {
+//         for(size_t i =0; i < layers.size(); i++) 
+//             std::cout << layers[i] << std::endl;
+//     }
 
 Network::~Network(){}
 

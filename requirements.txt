@@ -1,6 +1,7 @@
 numpy
-unittest
+unitest
 matplotlib
 opencv-python==4.3.*
 pybind11
 mkl
+mkl-include

@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-import lib256._matrix as _matrix
+import _matrix as _matrix
 import timeit
 import time
 from testcase.test_util import (

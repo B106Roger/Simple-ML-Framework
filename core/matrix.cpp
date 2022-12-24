@@ -5,6 +5,7 @@
 #include <mkl.h>
 #include "matrix.h"
 #include "debug.h"
+#include "tiler.h"
 
 // Matrix = double + Matrix
 #define OPERATOR_DOUBLE_MATRIX(FUNCNAME,OPT) \
@@ -81,16 +82,16 @@ Matrix& Matrix::FUNCNAME(const Matrix &mat) {\
 
 namespace py = pybind11;
 ////////////////////////////////////////////////////////////////////////////////
-/////////////       Class Member for Block Class                     //////////
+/////////////       Class Member for BlockMy Class                     //////////
 ////////////////////////////////////////////////////////////////////////////////
 
-Block::Block(size_t nrow, size_t ncol, bool colmajor):
+BlockMy::BlockMy(size_t nrow, size_t ncol, bool colmajor):
     m_nrow(nrow), m_ncol(ncol), m_buffer(NULL), m_row_stride(0), m_colmajor(colmajor)
 {
     if (m_colmajor)
         m_buffer=new double[m_nrow*m_ncol];
 }
-Block::Block(const Block &block):
+BlockMy::BlockMy(const BlockMy &block):
     m_nrow(block.m_nrow), m_ncol(block.m_ncol), m_buffer(NULL), m_row_stride(0), m_colmajor(block.m_colmajor)
 {
     if (block.m_colmajor)
@@ -99,11 +100,11 @@ Block::Block(const Block &block):
         memcpy(m_buffer, block.m_buffer, sizeof(double) * m_nrow * m_ncol);
     }
 }
-Block::~Block() { 
+BlockMy::~BlockMy() { 
     if (m_colmajor) delete[] m_buffer;
     m_buffer = NULL;
 }
-double   Block::operator() (size_t row, size_t col) const { // for getitem
+double   BlockMy::operator() (size_t row, size_t col) const { // for getitem
     if (m_colmajor)
     {
         return m_buffer[col * m_nrow + row];
@@ -111,7 +112,7 @@ double   Block::operator() (size_t row, size_t col) const { // for getitem
     else
         return m_buffer[row * m_row_stride + col];
 }
-void Block::setContent(double *ptr, size_t row_stride) {
+void BlockMy::setContent(double *ptr, size_t row_stride) {
     m_row_stride = row_stride;
     if (m_colmajor) {
         for (size_t i = 0; i < m_nrow; i++) {
@@ -133,6 +134,8 @@ void Block::setContent(double *ptr, size_t row_stride) {
 ////////////////////////////////////////
 // Constructor Start
 ////////////////////////////////////////
+int Matrix::multiplication_mode = 2;
+
 Matrix::Matrix()
     : m_nrow(0), m_ncol(0), m_buffer(NULL)
 {
@@ -154,7 +157,7 @@ Matrix::Matrix(size_t nrow, size_t ncol)
 template<typename Type>
 Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
     :m_nrow(nrow), m_ncol(ncol), m_buffer(NULL)
-{  
+{
     
     size_t nelement = nrow * ncol;
     m_buffer = new double[nelement];
@@ -164,21 +167,23 @@ Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
     }
 }
 
-Matrix::Matrix(const Matrix &target) {
+Matrix::Matrix(const Matrix &target) 
+{
     m_nrow=target.nrow();
     m_ncol=target.ncol();
     m_buffer = new double[m_nrow*m_ncol];
     memcpy(m_buffer, target.m_buffer, sizeof(double) * m_nrow * m_ncol);
 }
 
-Matrix Matrix::fillwith(size_t nrow, size_t ncol, double num)
+Matrix Matrix::fillwith(size_t nrow, size_t ncol, double num) 
 {
     Matrix mat(nrow, ncol);
     std::fill(mat.m_buffer, mat.m_buffer+nrow*ncol, num);
     return mat;
 }
 
-Matrix::~Matrix() { 
+Matrix::~Matrix() 
+{ 
     if (m_buffer == NULL && m_nrow != 0 and m_ncol != 0)
         std::cout << "pointer is null but has m_row, m_col is not 0\n" << std::endl;
 
@@ -193,14 +198,16 @@ Matrix::~Matrix() {
 // Other Function
 ///////////////////////////////////////
 // No bound check.
-double   Matrix::operator() (size_t row, size_t col) const { // for getitem
+double   Matrix::operator() (size_t row, size_t col) const // for setitem
+{
     if (row > m_nrow)
         throw std::runtime_error("row out of bound");
     if (col > m_ncol)
         throw std::runtime_error("col out of bound");
     return m_buffer[row*m_ncol + col];
 }
-double & Matrix::operator() (size_t row, size_t col) {       // for setitem
+double & Matrix::operator() (size_t row, size_t col) // for setitem
+{
     if (row > m_nrow)
         throw std::runtime_error("row out of bound");
     if (col > m_ncol)
@@ -234,7 +241,8 @@ OPERATOR_ASSIGN_MATRIX_MATRIX(operator-=,-=)
 OPERATOR_ASSIGN_MATRIX_MATRIX(operator*=,*=)
 OPERATOR_ASSIGN_MATRIX_MATRIX(operator/=,/=)
 
-void Matrix::operator=(const Matrix &target) {
+void Matrix::operator=(const Matrix &target) 
+{
     if (m_buffer != NULL)
         delete[] m_buffer;
     m_nrow=target.nrow();
@@ -243,7 +251,8 @@ void Matrix::operator=(const Matrix &target) {
     // std::cout << "operator= ptr: " << m_buffer << std::endl;
     memcpy(m_buffer, target.m_buffer, sizeof(double) * m_nrow * m_ncol);
 }
-bool Matrix::operator==(const Matrix &target) const{
+bool Matrix::operator==(const Matrix &target) const
+{
     if (m_nrow != target.m_nrow || m_ncol != target.m_ncol) {
         return false;
     } else {
@@ -256,7 +265,7 @@ bool Matrix::operator==(const Matrix &target) const{
     }
 }
 
-Matrix Matrix::power(double p) const
+Matrix Matrix::power(double p) const 
 {
     size_t nelement=m_ncol*m_nrow;
     Matrix result(m_nrow, m_ncol);
@@ -265,7 +274,7 @@ Matrix Matrix::power(double p) const
     }
     return result;
 }
-Matrix Matrix::exp() const
+Matrix Matrix::exp() const 
 {
     size_t nelement=m_ncol*m_nrow;
     Matrix result(m_nrow, m_ncol);
@@ -274,7 +283,7 @@ Matrix Matrix::exp() const
     }
     return result;
 }
-Matrix Matrix::log() const
+Matrix Matrix::log() const 
 {
     size_t nelement=m_ncol*m_nrow;
     Matrix result(m_nrow, m_ncol);
@@ -283,23 +292,24 @@ Matrix Matrix::log() const
     }
     return result;
 }
-Matrix Matrix::sigmoid() const {
+Matrix Matrix::sigmoid() const 
+{
     Matrix result(*this);
     for (size_t i = 0; i < m_nrow*m_ncol; i++) {
         result.m_buffer[i] = 1.0 / (1.0 + std::exp(-result.m_buffer[i]));
     }
     return result;
 }
-Matrix Matrix::relu() const {
+Matrix Matrix::relu() const 
+{
     Matrix result(*this);
     for(size_t i = 0; i < result.m_nrow * result.m_ncol; i++) {
-        if (result.m_buffer[i] < 0)
-            result.m_buffer[i] = 0.0;
+        if (result.m_buffer[i] < 0.l)
+            result.m_buffer[i] = 0.l;
     }
     return result;
 }
-
-Matrix Matrix::T() const
+Matrix Matrix::T() const 
 {
     Matrix result(m_ncol, m_nrow);
     for(size_t i = 0; i<m_nrow*m_ncol; i++)
@@ -312,12 +322,13 @@ Matrix Matrix::T() const
     return result;
 }
 
-Block Matrix::get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row) const{
+BlockMy Matrix::get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row) const
+{
     // row_idx: row index of the block
     // col_idx: col index of the block
     size_t bk_col = m_ncol - block_size*col_idx < block_size ? m_ncol - block_size*col_idx : block_size;
     size_t bk_row = m_nrow - block_size*row_idx < block_size ? m_nrow - block_size*row_idx : block_size;
-    Block block(bk_row, bk_col, col2row);
+    BlockMy block(bk_row, bk_col, col2row);
 
     size_t target_row=(block_size*row_idx)*m_ncol;
     size_t target_col=(block_size*col_idx);
@@ -325,7 +336,8 @@ Block Matrix::get_block(size_t block_size, size_t row_idx, size_t col_idx, bool 
     return block;
 }
 
-void Matrix::set_block(size_t block_size, size_t row_idx, size_t col_idx, const Matrix &mat) {
+void Matrix::set_block(size_t block_size, size_t row_idx, size_t col_idx, const Matrix &mat)
+{
     // row_idx: row index of the block
     // col_idx: col index of the block
     size_t bk_col = m_ncol - block_size*col_idx < block_size ? m_ncol - block_size*col_idx : block_size;
@@ -351,7 +363,8 @@ py::array_t<double, py::array::c_style | py::array::forcecast> Matrix::get_array
     return py::array_t<double, py::array::c_style | py::array::forcecast>(buffer, py::cast(this));
 }
 
-Matrix multiply_naive_bk(const Block &mat1, const Block &mat2) {
+Matrix multiply_naive_bk(const BlockMy &mat1, const BlockMy &mat2) 
+{
     size_t row=mat1.nrow();
     size_t col=mat2.ncol();
     size_t content=mat1.ncol();
@@ -368,7 +381,8 @@ Matrix multiply_naive_bk(const Block &mat1, const Block &mat2) {
     return tmp;
 }
 
-Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2) {
+Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2) 
+{
     size_t row=mat1.nrow();
     size_t col=mat2.ncol();
     size_t content=mat1.ncol();
@@ -385,7 +399,8 @@ Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2) {
     return tmp;
 }
 
-Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size) {
+Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
+{
     size_t row=mat1.nrow();
     size_t col=mat2.ncol();
     size_t content=mat1.ncol();
@@ -409,7 +424,130 @@ Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
     return result;
 }
 
-Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2) {
+Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
+{
+    Matrix ret(mat1.nrow(), mat2.ncol());
+
+    const size_t tsize = block_size;
+
+    const size_t nrow1 = mat1.nrow();
+    const size_t ncol1 = mat1.ncol();
+    const size_t nrow2 = mat2.nrow();
+    const size_t ncol2 = mat2.ncol();
+
+    const size_t ntrow1 = nrow1 / tsize;
+    const size_t ntcol1 = ncol1 / tsize;
+    const size_t ntrow2 = nrow2 / tsize;
+    const size_t ntcol2 = ncol2 / tsize;
+
+    const size_t row_spare_size = nrow1 % tsize;
+    const size_t con_spare_size = ncol1 % tsize;
+    const size_t col_spare_size = ncol2 % tsize;
+
+    const size_t row_flag = row_spare_size > 0;
+    const size_t con_flag = con_spare_size > 0;
+    const size_t col_flag = col_spare_size > 0;
+
+    Block value(tsize);
+    Tiler tiler(tsize);
+    // std::cout << row_flag << " " << con_flag << " " << col_flag << std::endl;
+    for (size_t it=0; it<ntrow1+row_flag; ++it)
+    {
+        size_t tile_row_size = (row_flag & (ntrow1 == it)) ? row_spare_size : tsize; 
+        for (size_t kt=0; kt<ntcol2+col_flag; ++kt)
+        {
+            size_t tile_col_size = (col_flag & (ntcol2 == kt)) ? col_spare_size : tsize; 
+            value = 0;
+            for (size_t jt=0; jt<ntcol1+con_flag; ++jt)
+            {
+                size_t tile_con_size = (con_flag & (ntcol1 == jt)) ? con_spare_size : tsize; 
+                // std::cout 
+                // << " tile_row_size(" << it << "," << ntrow1 << "," << tile_row_size << ") "
+                // << " tile_col_size(" << kt << "," << ntcol2 << "," << tile_col_size << ") "
+                // << " tile_con_size(" << jt << "," << ntcol1 << "," << tile_con_size << ") "
+                // << " " << row_flag << " " << con_flag << " " << col_flag << std::endl;
+                tiler.load(
+                    mat1, it, jt, tile_row_size, tile_con_size, 
+                    mat2, jt, kt, tile_con_size, tile_col_size
+                );
+                tiler.multiply(tile_row_size, tile_col_size, tile_con_size);
+                value += (*tiler.m_ret);
+
+            }
+
+            value.save(ret, it, kt, tile_row_size, tile_col_size);
+        }
+    }
+    return ret;
+}
+
+Matrix multiply_tile_nb_reorder(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
+{
+    size_t row=mat1.nrow();
+    size_t col=mat2.ncol();
+    size_t content=mat1.ncol();
+    Matrix result(row, col);
+
+    for(int n = 0; n < row; n += block_size)                // iterate over M dimension
+    {
+        for(int l = 0; l < col; l += block_size)
+        {
+            for(int i = 0; i < block_size; i++)
+            {
+                for(int j = 0; j< block_size; j++)
+                {
+                    double val = 0;
+                    int row = n + i, col = l + j;
+                    for (int k = 0; k < content; ++k)
+                    {
+                        val += mat1(row,k) * mat2(k,col);
+                    }
+                    result(row, col)=val;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+Matrix multiply_tile_nb(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
+{
+    size_t row=mat1.nrow();
+    size_t col=mat2.ncol();
+    size_t content=mat1.ncol();
+    Matrix result(row, col);
+
+    for(int n = 0; n < row; n += block_size)                // iterate over M dimension
+    {
+        for(int l = 0; l < col; l += block_size)
+        {
+            Matrix tmp(block_size, block_size);
+            for (int k = 0; k < content; ++k)
+            {
+                for(int i = 0; i < block_size; i++)
+                {
+                    for(int j = 0; j< block_size; j++)
+                    {
+                        int row = n + i;
+                        int col = l + j;
+                        // result(row, col)+=mat1(row,k) * mat2(k,col);
+                        if (k == content-1)
+                            result(row, col) = tmp(i,j) + mat1(row,k) * mat2(k,col);
+                        else
+                            tmp(i,j) += mat1(row,k) * mat2(k,col);
+                    }
+                }
+            }
+
+        }
+    }
+
+    return result;
+}
+
+Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2) 
+{
     if (mat1.ncol() != mat2.nrow())
         throw std::runtime_error("mismatch mat1.ncol and mat2.nrow!");
     mkl_set_num_threads(1);
@@ -433,7 +571,34 @@ Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2) {
     return ret;
 }
 
-void test(py::buffer b) {
+Matrix mat_multiply(const Matrix &mat1, const Matrix &mat2)
+{
+    switch (Matrix::multiplication_mode)
+    {
+        case 1:
+            return multiply_naive(mat1, mat2);
+        case 2:
+            return multiply_mkl(mat1, mat2);
+        case 3: 
+            return multiply_tile_modify(mat1, mat2, 32);
+    }
+    return multiply_naive(mat1, mat2);
+}
+
+
+void SetMatrixMode(int val)
+{
+    if (val > 0 & val < 4)
+        Matrix::multiplication_mode = val;
+}
+
+int GetMatrixMode()
+{
+    return Matrix::multiplication_mode;
+}
+
+void test(py::buffer b) 
+{
     py::buffer_info info = b.request();
     std::cout << info.format << std::endl;
 }

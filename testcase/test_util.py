@@ -1,3 +1,4 @@
+import numpy as np
 
 def print_matrix(mat):
     r=mat.nrow
@@ -13,6 +14,13 @@ def init_matrix(mat):
     for i in range(r):
         for j in range(c):
             mat[i,j]=i*mat.ncol+j
+            
+def rand_init_matrix(mat):
+    r=mat.nrow
+    c=mat.ncol
+    for i in range(r):
+        for j in range(c):
+            mat[i,j]=np.random.normal(0, 1/(r*c))
 
 def print_ndarray(ndarray):
     r=ndarray.shape[0]
@@ -29,7 +37,7 @@ def test_equal(mat1, ndarray):
         for j in range(col):
             # print(f'mat1[{i},{j}]={mat1[i,j]} ndarray[{i},{j}]={ndarray[i,j]}')
             if mat1[i,j] != ndarray[i,j]: 
-                print(f'wrong index: i: {i} j: {j}')
+                print(f'wrong index: i: {i} j: {j}. output {mat1[i,j]} expected {ndarray[i,j]}')
                 return False
     return True
 

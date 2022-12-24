@@ -8,11 +8,11 @@
 #define __MATRIX__
 namespace py = pybind11;
 
-class Block {
+class BlockMy {
 public:
-    Block(size_t nrow, size_t ncol, bool colmajor);
-    Block(const Block &block);
-    ~Block();
+    BlockMy(size_t nrow, size_t ncol, bool colmajor);
+    BlockMy(const BlockMy &block);
+    ~BlockMy();
     double   operator() (size_t row, size_t col) const;
     void setContent(double *ptr, size_t row_stride) ;
 
@@ -81,7 +81,7 @@ public:
     // Math Operation Function End
     ///////////////////////////////////////////
 
-    Block get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row = false) const;
+    BlockMy get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row = false) const;
     void set_block(size_t block_size, size_t row_idx, size_t col_idx, const Matrix &mat) ;
 
     Matrix T() const;
@@ -93,17 +93,38 @@ public:
 
     friend Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2);
     void print_shape(const char* mat_name="") const {std::cout << mat_name << " m_nrow: " << m_nrow << " m_ncol: " << m_ncol << std::endl; }
-private:
-    
+public:
     size_t m_nrow;
     size_t m_ncol;
     double * m_buffer;
+public:
+    static int multiplication_mode;
 
 };
 
+///////////////////////////////////////////////////////////
+// Set and Get Matrix Multiplication Core
+// 1 Naive Method
+// 2 MKL Library
+// 3 Tile Method
+///////////////////////////////////////////////////////////
+void SetMatrixMode(int val);
+int GetMatrixMode();
 void test(py::buffer b);
-Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2);
-Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+Matrix mat_multiply(const Matrix &mat1, const Matrix &mat2);
 Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2);
+Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2);
+Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+
+// ******************************************************
+// Not Correct if the row and col are 2's multipliers
+// ******************************************************
+Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+Matrix multiply_tile_nb(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+Matrix multiply_tile_nb_reorder(const Matrix &mat1, const Matrix &mat2, size_t block_size);
 #endif
 // end #define __MATRIX__

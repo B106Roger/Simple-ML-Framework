@@ -1,5 +1,5 @@
 import numpy as np
-import lib._matrix as mat
+import _matrix as mat
 import matplotlib.pyplot as plt
 import cv2
 from testcase.test_util import (

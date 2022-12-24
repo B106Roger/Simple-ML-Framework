@@ -24,7 +24,7 @@ Matrix Linear::forward(const Matrix &input_tensor)
     if (input_tensor.ncol() != m_weight.nrow()) throw std::runtime_error("mis match input_tensor.ncol and m_weight.nrow !\n");
     // m_weight=(feat_dim, out_dim)
     // output=(batch, out_dim)
-    Matrix output = multiply_mkl(input_tensor, m_weight);
+    Matrix output = mat_multiply(input_tensor, m_weight);
     if (m_use_bias) {
         // TODO broadcast m_bias
         output = output + m_bias;
@@ -38,16 +38,16 @@ std::pair<Matrix,std::vector<Matrix>> Linear::backward(Matrix &gradient)
     // m_input=(batch, in_feat)
     // gradient=(batch, out_feat)
     // m_weight_gradient=(in_feat, out_feat)
-    m_weight_gradient=multiply_mkl(m_input.T(), gradient);
+    m_weight_gradient=mat_multiply(m_input.T(), gradient);
     // m_weight=(in_feat, out_feat)
     // m_weight.T=(out_feat, in_feat)
     // graident=(batch, out_feat)
     // dzda=(batch, in_feat)
-    Matrix dzda = multiply_mkl(gradient, m_weight.T());
+    Matrix dzda = mat_multiply(gradient, m_weight.T());
     if (m_use_bias)
     {
         Matrix ones=Matrix::fillwith(1, gradient.nrow(), 1.0);
-        m_bias_gradient = multiply_mkl(ones, gradient);
+        m_bias_gradient = mat_multiply(ones, gradient);
         return std::pair<Matrix, std::vector<Matrix>>(
             dzda, 
             {m_weight_gradient, m_bias_gradient}

@@ -122,7 +122,7 @@ class TestStringMethods(unittest.TestCase):
         
         # epoch_counter=AvgCounter()
         opt=mat.SGD(1e-3, 0.0)
-        for epoch in range(15):
+        for epoch in range(5): # More Epoch Could Achieve 90% Acc
             step_counter_loss=AvgCounter()
             step_counter_acc=AvgCounter()
             
@@ -187,7 +187,7 @@ class TestStringMethods(unittest.TestCase):
         
         # epoch_counter=AvgCounter()
         opt=mat.SGD(1e-3, 0.0)
-        for epoch in range(15):
+        for epoch in range(5):
             step_counter_loss=AvgCounter()
             step_counter_acc=AvgCounter()
             

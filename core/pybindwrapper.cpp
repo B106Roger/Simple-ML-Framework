@@ -39,10 +39,20 @@ PYBIND11_MODULE(_matrix, m) {
     // *********************************************
     // isolation function
     // *********************************************
+    m.def("mat_multiply", &mat_multiply);
     m.def("multiply_naive", &multiply_naive);
-    m.def("multiply_tile", &multiply_tile);
     m.def("multiply_mkl", &multiply_mkl);
+    m.def("multiply_tile_modify", &multiply_tile_modify);
+
+    // Not Correct if the row and col is not 2's multiplier
+    m.def("multiply_tile", &multiply_tile);
+    m.def("multiply_tile_nb", &multiply_tile_nb);
+    m.def("multiply_tile_nb_reorder", &multiply_tile_nb_reorder);
+
     m.def("format_descriptor", &test);
+    m.def("set_matrix_mode", &SetMatrixMode);
+    m.def("get_matrix_mode", &GetMatrixMode);
+
 
     // *********************************************
     // Class

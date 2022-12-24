@@ -112,13 +112,24 @@ void SetMatrixMode(int val);
 int GetMatrixMode();
 void test(py::buffer b);
 
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
+
+
+
 Matrix mat_multiply(const Matrix &mat1, const Matrix &mat2);
+///////////////////////////////////////////////////////////
+// Tested Matrix Multiplication Core
+///////////////////////////////////////////////////////////
 Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2);
 Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2);
 Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+
+// Accelerate Part
+//////////////////////////////////////////////////////////////////////////////////////////
+// Create Your Own Matrix Multiplication Below
+// Note that all the Matrix Multiplication should have signature like
+// Matrix multiply_YOUR_FUNC_NAME(const Matrix &mat1, const Matrix &mat2, ...other-argument) 
+//////////////////////////////////////////////////////////////////////////////////////////
+
 
 // ******************************************************
 // Not Correct if the row and col are 2's multipliers

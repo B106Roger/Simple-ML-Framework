@@ -5,6 +5,11 @@ import cv2
 from testcase.test_util import (
     AvgCounter
 )
+#############################################
+# Set Your Matrix Multiplication Mode 
+# by default using MKL multiplication
+#############################################
+# _matrix.set_matrix_mode(YOUR_DESICRED_MODE)
 
 # initialize dataset
 EPOCH=15

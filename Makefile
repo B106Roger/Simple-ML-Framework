@@ -46,7 +46,5 @@ test: ${MATLIB}
 #	python -m unittest main_mnist_test.py
 #	python -m unittest main_matrix_test.py
 
-
-
 clean:
 	rm -rf *.so __pycache__ .pytest_cache 

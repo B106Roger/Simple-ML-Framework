@@ -30,42 +30,30 @@ class TestStringMethods(unittest.TestCase):
         init_matrix(a)
         init_matrix(b)
         
+        ##########################################
         # MKL Library Result (Upper Bound)
+        ##########################################
         mlutiply_mkl_time = timeit.timeit(lambda:_matrix.multiply_mkl(a, b), number=self.loop, timer=time.process_time)
         print(f'mlutiply_mkl_time   : {mlutiply_mkl_time:8.6f}')
         
+        ##########################################
         # Naive Method Result (Lower Bound)
+        ##########################################
         multiply_naive_time = timeit.timeit(lambda:_matrix.multiply_naive(a, b), number=self.loop, timer=time.process_time)
         print(f'multiply_naive_time : {multiply_naive_time:8.6f}')
         
+        ##########################################
         # Tiled Matrix Method Result
+        ##########################################
         for tile in [2,4,8,16,32,64,128]:
-        # for tile in [8]:
             t=_matrix.multiply_tile_modify(a, b, tile)
             self.assertTrue(test_equal(t,ans))
             multiply_tile_time = timeit.timeit(lambda:_matrix.multiply_tile_modify(a, b, tile), number=self.loop, timer=time.process_time)
             print(f'multiply_tile_mod_{tile:03d}   : {multiply_tile_time:8.6f}')
         
-        # # Matrix Library Result
-        # for tile in [1,2,4,8,16,32,64,128]:
-        #     t=_matrix.multiply_tile(a, b, tile)
-        #     self.assertTrue(test_equal(t,ans))
-        #     multiply_tile_time = timeit.timeit(lambda:_matrix.multiply_tile(a, b, tile), number=self.loop, timer=time.process_time)
-        #     print(f'multiply_tile_{tile:03d}   : {multiply_tile_time:8.6f}')
-
-        # # Matrix Library Result 2
-        # for tile in [1,2,4,8,16,32,64,128]:
-        #     t=_matrix.multiply_tile_nb(a, b, tile)
-        #     self.assertTrue(test_equal(t,ans))
-        #     multiply_tile_time = timeit.timeit(lambda:_matrix.multiply_tile_nb(a, b, tile), number=self.loop, timer=time.process_time)
-        #     print(f'multiply_tileV2_{tile:03d} : {multiply_tile_time:8.6f}')
-            
-        # # Matrix Library Result 3
-        # for tile in [1,2,4,8,16,32,64,128]:
-        #     t=_matrix.multiply_tile_nb_reorder(a, b, tile)
-        #     self.assertTrue(test_equal(t,ans))
-        #     multiply_tile_time = timeit.timeit(lambda:_matrix.multiply_tile_nb_reorder(a, b, tile), number=self.loop, timer=time.process_time)
-        #     print(f'multiply_tilenb_reord_{tile:03d} : {multiply_tile_time:8.6f}')
+        ##########################################
+        # Your Accelerate Method Result
+        ##########################################
 
         
     def test_mat_multiply(self):

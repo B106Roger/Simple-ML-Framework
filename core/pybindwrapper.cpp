@@ -43,6 +43,10 @@ PYBIND11_MODULE(_matrix, m) {
     m.def("multiply_naive", &multiply_naive);
     m.def("multiply_mkl", &multiply_mkl);
     m.def("multiply_tile_modify", &multiply_tile_modify);
+    // Accelerate Part
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Register Your Own Matrix Multiplication Below
+    //////////////////////////////////////////////////////////////////////////////////////////
 
     // Not Correct if the row and col is not 2's multiplier
     m.def("multiply_tile", &multiply_tile);

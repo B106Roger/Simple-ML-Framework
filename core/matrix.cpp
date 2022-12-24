@@ -363,22 +363,24 @@ py::array_t<double, py::array::c_style | py::array::forcecast> Matrix::get_array
     return py::array_t<double, py::array::c_style | py::array::forcecast>(buffer, py::cast(this));
 }
 
-Matrix multiply_naive_bk(const BlockMy &mat1, const BlockMy &mat2) 
+
+//////////////////////////////////////////////////////////////////////
+// Matrix Multiplication Core
+//////////////////////////////////////////////////////////////////////
+
+// Tested Part
+Matrix mat_multiply(const Matrix &mat1, const Matrix &mat2)
 {
-    size_t row=mat1.nrow();
-    size_t col=mat2.ncol();
-    size_t content=mat1.ncol();
-    Matrix tmp(row, col);
-    for (size_t i=0; i<row; i++) {
-        for (size_t j=0; j<col; j++) {
-            double sum=0.0;
-            for (size_t k=0; k<content; k++) {
-                sum+=mat1(i,k)*mat2(k,j);
-            }
-            tmp(i,j)=sum;
-        }
+    switch (Matrix::multiplication_mode)
+    {
+        case 1:
+            return multiply_naive(mat1, mat2);
+        case 2:
+            return multiply_mkl(mat1, mat2);
+        case 3: 
+            return multiply_tile_modify(mat1, mat2, 32);
     }
-    return tmp;
+    return multiply_naive(mat1, mat2);
 }
 
 Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2) 
@@ -399,29 +401,29 @@ Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2)
     return tmp;
 }
 
-Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
+Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2) 
 {
-    size_t row=mat1.nrow();
-    size_t col=mat2.ncol();
-    size_t content=mat1.ncol();
-    Matrix result(row, col);
-    size_t max_bk_row = row % block_size == 0 ? row/block_size : row/block_size+1;
-    size_t max_bk_col = col % block_size == 0 ? col/block_size : col/block_size+1;
-    size_t max_bk_content = content % block_size == 0 ? content/block_size : content/block_size+1;
-
-    for (size_t i=0; i<max_bk_row; i++) {
-        for (size_t j=0; j<max_bk_col; j++) {
-            Matrix tmpmat(1,1);
-            for (size_t k=0; k<max_bk_content; k++) {
-                if (k==0) 
-                    tmpmat = multiply_naive_bk(mat1.get_block(block_size, i, k, false), mat2.get_block(block_size, k, j, true));
-                else
-                    tmpmat +=  multiply_naive_bk(mat1.get_block(block_size, i, k, false), mat2.get_block(block_size, k, j, true));
-            }
-            result.set_block(block_size, i, j, tmpmat);
-        }
-    }
-    return result;
+    if (mat1.ncol() != mat2.nrow())
+        throw std::runtime_error("mismatch mat1.ncol and mat2.nrow!");
+    mkl_set_num_threads(1);
+    Matrix ret(mat1.nrow(), mat2.ncol());
+    cblas_dgemm(
+        CblasRowMajor /* const CBLAS_LAYOUT Layout */
+      , CblasNoTrans /* const CBLAS_TRANSPOSE transa */
+      , CblasNoTrans /* const CBLAS_TRANSPOSE transb */
+      , mat1.nrow() /* const MKL_INT m */
+      , mat2.ncol() /* const MKL_INT n */
+      , mat1.ncol() /* const MKL_INT k */
+      , 1.0 /* const double alpha */
+      , mat1.m_buffer /* const double *a */
+      , mat1.ncol() /* const MKL_INT lda */
+      , mat2.m_buffer /* const double *b */
+      , mat2.ncol() /* const MKL_INT ldb */
+      , 0.0 /* const double beta */
+      , ret.m_buffer /* double * c */
+      , ret.ncol() /* const MKL_INT ldc */
+    );
+    return ret;
 }
 
 Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
@@ -481,6 +483,58 @@ Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block
     return ret;
 }
 
+// Accelerate Part
+//////////////////////////////////////////////////////////////////////////////////////////
+// Create Your Own Matrix Multiplication Below
+// Note that all the Matrix Multiplication should have signature like
+// Matrix multiply_YOUR_FUNC_NAME(const Matrix &mat1, const Matrix &mat2, ...other-argument) 
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Under Tested Part
+Matrix multiply_naive_bk(const BlockMy &mat1, const BlockMy &mat2) 
+{
+    size_t row=mat1.nrow();
+    size_t col=mat2.ncol();
+    size_t content=mat1.ncol();
+    Matrix tmp(row, col);
+    for (size_t i=0; i<row; i++) {
+        for (size_t j=0; j<col; j++) {
+            double sum=0.0;
+            for (size_t k=0; k<content; k++) {
+                sum+=mat1(i,k)*mat2(k,j);
+            }
+            tmp(i,j)=sum;
+        }
+    }
+    return tmp;
+}
+
+Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
+{
+    size_t row=mat1.nrow();
+    size_t col=mat2.ncol();
+    size_t content=mat1.ncol();
+    Matrix result(row, col);
+    size_t max_bk_row = row % block_size == 0 ? row/block_size : row/block_size+1;
+    size_t max_bk_col = col % block_size == 0 ? col/block_size : col/block_size+1;
+    size_t max_bk_content = content % block_size == 0 ? content/block_size : content/block_size+1;
+
+    for (size_t i=0; i<max_bk_row; i++) {
+        for (size_t j=0; j<max_bk_col; j++) {
+            Matrix tmpmat(1,1);
+            for (size_t k=0; k<max_bk_content; k++) {
+                if (k==0) 
+                    tmpmat = multiply_naive_bk(mat1.get_block(block_size, i, k, false), mat2.get_block(block_size, k, j, true));
+                else
+                    tmpmat +=  multiply_naive_bk(mat1.get_block(block_size, i, k, false), mat2.get_block(block_size, k, j, true));
+            }
+            result.set_block(block_size, i, j, tmpmat);
+        }
+    }
+    return result;
+}
+
 Matrix multiply_tile_nb_reorder(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
 {
     size_t row=mat1.nrow();
@@ -510,6 +564,8 @@ Matrix multiply_tile_nb_reorder(const Matrix &mat1, const Matrix &mat2, size_t b
 
     return result;
 }
+
+
 
 Matrix multiply_tile_nb(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
 {
@@ -546,50 +602,18 @@ Matrix multiply_tile_nb(const Matrix &mat1, const Matrix &mat2, size_t block_siz
     return result;
 }
 
-Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2) 
-{
-    if (mat1.ncol() != mat2.nrow())
-        throw std::runtime_error("mismatch mat1.ncol and mat2.nrow!");
-    mkl_set_num_threads(1);
-    Matrix ret(mat1.nrow(), mat2.ncol());
-    cblas_dgemm(
-        CblasRowMajor /* const CBLAS_LAYOUT Layout */
-      , CblasNoTrans /* const CBLAS_TRANSPOSE transa */
-      , CblasNoTrans /* const CBLAS_TRANSPOSE transb */
-      , mat1.nrow() /* const MKL_INT m */
-      , mat2.ncol() /* const MKL_INT n */
-      , mat1.ncol() /* const MKL_INT k */
-      , 1.0 /* const double alpha */
-      , mat1.m_buffer /* const double *a */
-      , mat1.ncol() /* const MKL_INT lda */
-      , mat2.m_buffer /* const double *b */
-      , mat2.ncol() /* const MKL_INT ldb */
-      , 0.0 /* const double beta */
-      , ret.m_buffer /* double * c */
-      , ret.ncol() /* const MKL_INT ldc */
-    );
-    return ret;
-}
 
-Matrix mat_multiply(const Matrix &mat1, const Matrix &mat2)
-{
-    switch (Matrix::multiplication_mode)
-    {
-        case 1:
-            return multiply_naive(mat1, mat2);
-        case 2:
-            return multiply_mkl(mat1, mat2);
-        case 3: 
-            return multiply_tile_modify(mat1, mat2, 32);
-    }
-    return multiply_naive(mat1, mat2);
-}
+
+
 
 
 void SetMatrixMode(int val)
 {
-    if (val > 0 & val < 4)
+    if (val > 0)
         Matrix::multiplication_mode = val;
+    else
+        throw std::runtime_error("Matrix::multiplication_mode should  greater than 0 !!\n");
+
 }
 
 int GetMatrixMode()

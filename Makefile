@@ -40,8 +40,9 @@ ${MATLIB}: ./core/pybindwrapper.cpp ./core/matrix.cpp ./core/base_layer.cpp ./co
 	python -c "import _matrix"
 
 test: ${MATLIB}
-	python -m unittest main_matrix_test.py -v
-	python -m unittest main_performance_test.py -v
+	python -m unittest main_pp_performance_test.py -v
+#	python -m unittest main_matrix_test.py -v
+#	python -m unittest main_performance_test.py -v
 #	python -m unittest main_layer_test.py
 #	python -m unittest main_mnist_test.py
 #	python -m unittest main_matrix_test.py

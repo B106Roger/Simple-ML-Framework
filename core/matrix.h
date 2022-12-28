@@ -3,6 +3,7 @@
 #include <iostream>
 #include <math.h>
 #include <mkl.h>
+#include <ctime>
 
 #ifndef __MATRIX__
 #define __MATRIX__
@@ -129,7 +130,10 @@ Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block
 // Note that all the Matrix Multiplication should have signature like
 // Matrix multiply_YOUR_FUNC_NAME(const Matrix &mat1, const Matrix &mat2, ...other-argument) 
 //////////////////////////////////////////////////////////////////////////////////////////
-
+// Matrix multiply_tile_modify_thread(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+Matrix multiply_tile_SIMD_SSE(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+Matrix multiply_tile_SIMD_AVX(const Matrix &mat1, const Matrix &mat2, size_t block_size);
 
 // ******************************************************
 // Not Correct if the row and col are 2's multipliers

@@ -9,7 +9,7 @@ from testcase.test_util import (
 # Set Your Matrix Multiplication Mode 
 # by default using MKL multiplication
 #############################################
-# _matrix.set_matrix_mode(YOUR_DESICRED_MODE)
+# mat.set_matrix_mode(1)
 
 # initialize dataset
 EPOCH=15
@@ -32,6 +32,9 @@ def get_optimal_font_scale(text, width):
     return 1
 
 def test_mnist_mse():
+    ################################
+    # Create Network, Loss Function
+    ################################
     a=[
         mat.Linear(784, 128, True, True),
         mat.Sigmoid(),
@@ -40,7 +43,10 @@ def test_mnist_mse():
     ]
     network=mat.Network(a)
     loss_fn=mat.MSE()
-
+    
+    ################################
+    # Init Network Parameter
+    ################################
     for layer in network.layers:
         config=layer.get_config()
         if 'in_dim' not in config.keys():
@@ -54,7 +60,9 @@ def test_mnist_mse():
         Mrandom_bias=mat.Matrix(random_bias)
         layer.set_weight((Mrandom_weight, Mrandom_bias))
         
-    # epoch_counter=AvgCounter()
+    ##################################
+    # Determine Optmization Algorithm
+    ##################################
     opt=mat.SGD(1e-3, 0.0)
     acc_list=[]
     for epoch in range(EPOCH):
@@ -74,6 +82,9 @@ def test_mnist_mse():
 
             Mgth =mat.Matrix(gth)
 
+            ##################################
+            # Update Model Parameter
+            ##################################
             Mresult=network(Mdata)
             loss=loss_fn(Mresult, Mgth)
             gradients=network.backward(loss_fn.backward())

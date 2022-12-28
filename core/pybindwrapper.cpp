@@ -43,15 +43,19 @@ PYBIND11_MODULE(_matrix, m) {
     m.def("multiply_naive", &multiply_naive);
     m.def("multiply_mkl", &multiply_mkl);
     m.def("multiply_tile_modify", &multiply_tile_modify);
+    // m.def("multiply_tile_modify_thread", &multiply_tile_modify_thread);
+    m.def("multiply_tile_modify_pthread", &multiply_tile_modify_pthread);
+    m.def("multiply_tile_SIMD_SSE", &multiply_tile_SIMD_SSE);
+    m.def("multiply_tile_SIMD_AVX", &multiply_tile_SIMD_AVX);
     // Accelerate Part
     //////////////////////////////////////////////////////////////////////////////////////////
     // Register Your Own Matrix Multiplication Below
     //////////////////////////////////////////////////////////////////////////////////////////
 
     // Not Correct if the row and col is not 2's multiplier
-    m.def("multiply_tile", &multiply_tile);
-    m.def("multiply_tile_nb", &multiply_tile_nb);
-    m.def("multiply_tile_nb_reorder", &multiply_tile_nb_reorder);
+    // m.def("multiply_tile", &multiply_tile);
+    // m.def("multiply_tile_nb", &multiply_tile_nb);
+    // m.def("multiply_tile_nb_reorder", &multiply_tile_nb_reorder);
 
     m.def("format_descriptor", &test);
     m.def("set_matrix_mode", &SetMatrixMode);

@@ -6,6 +6,8 @@
 #include "matrix.h"
 #include "debug.h"
 #include "tiler.h"
+#include <pthread.h>
+#include <stdio.h>
 
 // Matrix = double + Matrix
 #define OPERATOR_DOUBLE_MATRIX(FUNCNAME,OPT) \
@@ -379,6 +381,8 @@ Matrix mat_multiply(const Matrix &mat1, const Matrix &mat2)
             return multiply_mkl(mat1, mat2);
         case 3: 
             return multiply_tile_modify(mat1, mat2, 32);
+        case 4:
+            return multiply_tile_modify_pthread(mat1, mat2, 32);
     }
     return multiply_naive(mat1, mat2);
 }
@@ -460,6 +464,8 @@ Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block
         {
             size_t tile_col_size = (col_flag & (ntcol2 == kt)) ? col_spare_size : tsize; 
             value = 0;
+            // clock_t s,e;
+            // s = clock();
             for (size_t jt=0; jt<ntcol1+con_flag; ++jt)
             {
                 size_t tile_con_size = (con_flag & (ntcol1 == jt)) ? con_spare_size : tsize; 
@@ -478,6 +484,9 @@ Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block
             }
 
             value.save(ret, it, kt, tile_row_size, tile_col_size);
+            // e = clock();
+            // double diff = (double)(e-s);
+            // printf("cost on each block serial = %f\n", diff);
         }
     }
     return ret;
@@ -490,6 +499,241 @@ Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block
 // Matrix multiply_YOUR_FUNC_NAME(const Matrix &mat1, const Matrix &mat2, ...other-argument) 
 //////////////////////////////////////////////////////////////////////////////////////////
 
+Matrix multiply_tile_SIMD_SSE(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
+{
+    Matrix ret(mat1.nrow(), mat2.ncol());
+
+    const size_t tsize = block_size;
+
+    const size_t nrow1 = mat1.nrow();
+    const size_t ncol1 = mat1.ncol();
+    const size_t nrow2 = mat2.nrow();
+    const size_t ncol2 = mat2.ncol();
+
+    const size_t ntrow1 = nrow1 / tsize;
+    const size_t ntcol1 = ncol1 / tsize;
+    const size_t ntrow2 = nrow2 / tsize;
+    const size_t ntcol2 = ncol2 / tsize;
+
+    const size_t row_spare_size = nrow1 % tsize;
+    const size_t con_spare_size = ncol1 % tsize;
+    const size_t col_spare_size = ncol2 % tsize;
+
+    const size_t row_flag = row_spare_size > 0;
+    const size_t con_flag = con_spare_size > 0;
+    const size_t col_flag = col_spare_size > 0;
+
+    Block value(tsize);
+    Tiler tiler(tsize);
+    // std::cout << row_flag << " " << con_flag << " " << col_flag << std::endl;
+    for (size_t it=0; it<ntrow1+row_flag; ++it)
+    {
+        size_t tile_row_size = (row_flag & (ntrow1 == it)) ? row_spare_size : tsize; 
+        for (size_t kt=0; kt<ntcol2+col_flag; ++kt)
+        {
+            size_t tile_col_size = (col_flag & (ntcol2 == kt)) ? col_spare_size : tsize; 
+            value = 0;
+            for (size_t jt=0; jt<ntcol1+con_flag; ++jt)
+            {
+                size_t tile_con_size = (con_flag & (ntcol1 == jt)) ? con_spare_size : tsize; 
+                // std::cout 
+                // << " tile_row_size(" << it << "," << ntrow1 << "," << tile_row_size << ") "
+                // << " tile_col_size(" << kt << "," << ntcol2 << "," << tile_col_size << ") "
+                // << " tile_con_size(" << jt << "," << ntcol1 << "," << tile_con_size << ") "
+                // << " " << row_flag << " " << con_flag << " " << col_flag << std::endl;
+                tiler.load(
+                    mat1, it, jt, tile_row_size, tile_con_size, 
+                    mat2, jt, kt, tile_con_size, tile_col_size
+                );
+                tiler.SSE_multiply(tile_row_size, tile_col_size, tile_con_size);
+                value += (*tiler.m_ret);
+
+            }
+
+            value.save(ret, it, kt, tile_row_size, tile_col_size);
+        }
+    }
+    return ret;
+}
+
+Matrix multiply_tile_SIMD_AVX(const Matrix &mat1, const Matrix &mat2, size_t block_size) 
+{
+    Matrix ret(mat1.nrow(), mat2.ncol());
+
+    const size_t tsize = block_size;
+
+    const size_t nrow1 = mat1.nrow();
+    const size_t ncol1 = mat1.ncol();
+    const size_t nrow2 = mat2.nrow();
+    const size_t ncol2 = mat2.ncol();
+
+    const size_t ntrow1 = nrow1 / tsize;
+    const size_t ntcol1 = ncol1 / tsize;
+    const size_t ntrow2 = nrow2 / tsize;
+    const size_t ntcol2 = ncol2 / tsize;
+
+    const size_t row_spare_size = nrow1 % tsize;
+    const size_t con_spare_size = ncol1 % tsize;
+    const size_t col_spare_size = ncol2 % tsize;
+
+    const size_t row_flag = row_spare_size > 0;
+    const size_t con_flag = con_spare_size > 0;
+    const size_t col_flag = col_spare_size > 0;
+
+    Block value(tsize);
+    Tiler tiler(tsize);
+    // std::cout << row_flag << " " << con_flag << " " << col_flag << std::endl;
+    for (size_t it=0; it<ntrow1+row_flag; ++it)
+    {
+        size_t tile_row_size = (row_flag & (ntrow1 == it)) ? row_spare_size : tsize; 
+        for (size_t kt=0; kt<ntcol2+col_flag; ++kt)
+        {
+            size_t tile_col_size = (col_flag & (ntcol2 == kt)) ? col_spare_size : tsize; 
+            value = 0;
+            for (size_t jt=0; jt<ntcol1+con_flag; ++jt)
+            {
+                size_t tile_con_size = (con_flag & (ntcol1 == jt)) ? con_spare_size : tsize; 
+                // std::cout 
+                // << " tile_row_size(" << it << "," << ntrow1 << "," << tile_row_size << ") "
+                // << " tile_col_size(" << kt << "," << ntcol2 << "," << tile_col_size << ") "
+                // << " tile_con_size(" << jt << "," << ntcol1 << "," << tile_con_size << ") "
+                // << " " << row_flag << " " << con_flag << " " << col_flag << std::endl;
+                tiler.load(
+                    mat1, it, jt, tile_row_size, tile_con_size, 
+                    mat2, jt, kt, tile_con_size, tile_col_size
+                );
+                tiler.AVX_multiply(tile_row_size, tile_col_size, tile_con_size);
+                value += (*tiler.m_ret);
+
+            }
+
+            value.save(ret, it, kt, tile_row_size, tile_col_size);
+        }
+    }
+    return ret;
+}
+
+// using Pthread
+
+// def arg
+typedef struct
+{   
+    const Matrix *mat1;
+    const Matrix *mat2;
+    int threadId;
+    int numThreads;
+    int num_block;
+
+    size_t ntrow1;
+    size_t ntcol1;
+    size_t ntcol2;
+
+    size_t row_spare_size;
+    size_t con_spare_size;
+    size_t col_spare_size;
+
+    size_t row_flag;
+    size_t con_flag;
+    size_t col_flag;
+
+    size_t tsize;
+    Matrix *ret;
+} WorkerArg;
+
+void* threadstarts(void *arg)
+{   
+    clock_t s,e;
+    // s: whick block
+    WorkerArg *args = (WorkerArg *)arg;
+    Block value(args->tsize);
+    Tiler tiler(args->tsize);
+    s = clock(); 
+    for (int s = args->threadId; s < args->num_block; s+=args->numThreads){
+        size_t it = s / args->ntrow1;
+        size_t kt = s % args->ntrow1;
+        size_t tile_row_size = (args->row_flag & (args->ntrow1 == it)) ? args->row_spare_size : args->tsize;
+        size_t tile_col_size = (args->col_flag & (args->ntcol2 == kt)) ? args->col_spare_size : args->tsize;
+
+        value = 0;
+        for (size_t jt = 0; jt < args->ntcol1 + args->con_flag; ++jt){
+            size_t tile_con_size = (args->con_flag & (args->ntcol1 == jt)) ? args->con_spare_size : args->tsize;
+            tiler.load(
+                        (*args->mat1), it, jt, tile_row_size, tile_con_size, 
+                        (*args->mat2), jt, kt, tile_con_size, tile_col_size
+                    );
+            tiler.multiply(tile_row_size, tile_col_size, tile_con_size);
+            value += (*tiler.m_ret);
+        }    
+        value.save(*args->ret, it, kt, tile_row_size, tile_col_size); 
+    }
+    e = clock();
+    double diff = (double)(e-s) / CLOCKS_PER_SEC;
+    //printf("Thread %2d : time forloop threads = %f\n", args->threadId, diff);
+    pthread_exit((void *)0);
+}
+
+Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size)
+{   
+    clock_t s,e;
+    Matrix ret(mat1.nrow(), mat2.ncol());
+
+    const size_t tsize = block_size;
+
+    const size_t nrow1 = mat1.nrow();
+    const size_t ncol1 = mat1.ncol();
+    const size_t nrow2 = mat2.nrow();
+    const size_t ncol2 = mat2.ncol();
+
+    const size_t ntrow1 = nrow1 / tsize;
+    const size_t ntcol1 = ncol1 / tsize;
+    const size_t ntrow2 = nrow2 / tsize;
+    const size_t ntcol2 = ncol2 / tsize;
+
+    const size_t row_spare_size = nrow1 % tsize;
+    const size_t con_spare_size = ncol1 % tsize;
+    const size_t col_spare_size = ncol2 % tsize;
+
+    const size_t row_flag = row_spare_size > 0;
+    const size_t con_flag = con_spare_size > 0;
+    const size_t col_flag = col_spare_size > 0;
+
+    int numThreads = 8;
+    pthread_t threads[numThreads];
+    WorkerArg args[numThreads];
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+    for (int i = 0; i < numThreads; i++){
+        args[i].mat1 = &mat1;
+        args[i].mat2 = &mat2;
+
+        args[i].threadId = i;
+        args[i].numThreads = numThreads;
+        args[i].num_block = (ntrow1+row_flag) * (ntcol2+col_flag);
+        
+        args[i].ntrow1 = ntrow1;
+        args[i].ntcol1 = ntcol1;
+        args[i].ntcol2 = ntcol2;
+
+        args[i].row_spare_size = row_spare_size;
+        args[i].con_spare_size = con_spare_size;
+        args[i].col_spare_size = col_spare_size;
+
+        args[i].row_flag = row_flag;
+        args[i].con_flag = con_flag;
+        args[i].col_flag = col_flag;
+
+        args[i].tsize = tsize;
+        args[i].ret = &ret;
+    }
+
+    for (int i = 0; i < numThreads; i++) pthread_create(&threads[i], &attr, &threadstarts, (void *)&args[i]);
+    for (int i = 0; i < numThreads; i++) pthread_join(threads[i], NULL);
+
+    pthread_attr_destroy(&attr);
+    return ret;
+}
 
 // Under Tested Part
 Matrix multiply_naive_bk(const BlockMy &mat1, const BlockMy &mat2) 

@@ -1,5 +1,6 @@
 # Simple ML Framework
 ## Installation
+Use python3.8 to prevent some package compatibility issue
 ```
 https://github.com/B106Roger/Simple-ML-Framework.git
 cd Simple-ML-Framework

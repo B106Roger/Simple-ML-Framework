@@ -14,8 +14,8 @@ from testcase.test_util import (
 
 class TestStringMethods(unittest.TestCase):
     loop=10
-    row=512
-    col=512
+    row=1024
+    col=1024
     def test_multiply_tile1(self):
         print()
         # Numpy Libray Result
@@ -39,13 +39,15 @@ class TestStringMethods(unittest.TestCase):
         ##########################################
         # Naive Method Result (Lower Bound)
         ##########################################
-        multiply_naive_time = timeit.timeit(lambda:_matrix.multiply_naive(a, b), number=5, timer=time.process_time)
+        multiply_naive_time = timeit.timeit(lambda:_matrix.multiply_naive(a, b), number=2, timer=time.process_time)
         print(f'multiply_naive_time : {multiply_naive_time:8.6f}')
         
         ##########################################
         # Tiled Matrix Method Result
         ##########################################
-        for tile in [4,8,16,32,64,128]:
+        # for tile in [4,8,16,32,64,128]:
+        for tile in [16,32]:
+        
             t=_matrix.multiply_tile_modify(a, b, tile)
             self.assertTrue(test_equal(t,ans))
             multiply_tile_time = timeit.timeit(lambda:_matrix.multiply_tile_modify(a, b, tile), number=self.loop, timer=time.process_time)
@@ -54,11 +56,12 @@ class TestStringMethods(unittest.TestCase):
         ##########################################
         # Your Accelerate Method Result
         ##########################################
-        for tile in [16]:
-            t=_matrix.multiply_tile_modify_pthread(a, b, tile)
+        TILE_SIZE=16
+        for n_thread in [2,4,6,8]:
+            t=_matrix.multiply_tile_modify_pthread(a, b, TILE_SIZE, n_thread)
             self.assertTrue(test_equal(t,ans))
-            multiply_tile_pthread_time = timeit.timeit(lambda:_matrix.multiply_tile_modify_pthread(a, b, tile), number=self.loop, timer=time.process_time)
-            print(f'multiply_tile_mod_{tile:03d}_pthread   : {multiply_tile_pthread_time:8.6f}')
+            multiply_tile_pthread_time = timeit.timeit(lambda:_matrix.multiply_tile_modify_pthread(a, b, TILE_SIZE, n_thread), number=self.loop, timer=time.process_time)
+            print(f'multiply_tile_{TILE_SIZE:03d}_thread_{n_thread:03d}_pthread : {multiply_tile_pthread_time:8.6f}')
             
         for tile in [16]:
             t=_matrix.multiply_tile_SIMD_SSE(a, b, tile)

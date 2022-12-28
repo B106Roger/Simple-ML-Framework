@@ -380,9 +380,9 @@ Matrix mat_multiply(const Matrix &mat1, const Matrix &mat2)
         case 2:
             return multiply_mkl(mat1, mat2);
         case 3: 
-            return multiply_tile_modify(mat1, mat2, 32);
+            return multiply_tile_modify(mat1, mat2, 16);
         case 4:
-            return multiply_tile_modify_pthread(mat1, mat2, 32);
+            return multiply_tile_modify_pthread(mat1, mat2, 16, 8);
     }
     return multiply_naive(mat1, mat2);
 }
@@ -593,14 +593,9 @@ Matrix multiply_tile_SIMD_AVX(const Matrix &mat1, const Matrix &mat2, size_t blo
             for (size_t jt=0; jt<ntcol1+con_flag; ++jt)
             {
                 size_t tile_con_size = (con_flag & (ntcol1 == jt)) ? con_spare_size : tsize; 
-                // std::cout 
-                // << " tile_row_size(" << it << "," << ntrow1 << "," << tile_row_size << ") "
-                // << " tile_col_size(" << kt << "," << ntcol2 << "," << tile_col_size << ") "
-                // << " tile_con_size(" << jt << "," << ntcol1 << "," << tile_con_size << ") "
-                // << " " << row_flag << " " << con_flag << " " << col_flag << std::endl;
                 tiler.load(
                     mat1, it, jt, tile_row_size, tile_con_size, 
-                    mat2, jt, kt, tile_con_size, tile_col_size
+                    mat2, jt, kt, tile_con_size, tile_col_size, true
                 );
                 tiler.AVX_multiply(tile_row_size, tile_col_size, tile_con_size);
                 value += (*tiler.m_ret);
@@ -642,12 +637,12 @@ typedef struct
 
 void* threadstarts(void *arg)
 {   
-    clock_t s,e;
+    // clock_t s,e;
     // s: whick block
     WorkerArg *args = (WorkerArg *)arg;
     Block value(args->tsize);
     Tiler tiler(args->tsize);
-    s = clock(); 
+    // s = clock(); 
     for (int s = args->threadId; s < args->num_block; s+=args->numThreads){
         size_t it = s / args->ntrow1;
         size_t kt = s % args->ntrow1;
@@ -666,13 +661,13 @@ void* threadstarts(void *arg)
         }    
         value.save(*args->ret, it, kt, tile_row_size, tile_col_size); 
     }
-    e = clock();
-    double diff = (double)(e-s) / CLOCKS_PER_SEC;
+    // e = clock();
+    // double diff = (double)(e-s) / CLOCKS_PER_SEC;
     //printf("Thread %2d : time forloop threads = %f\n", args->threadId, diff);
     pthread_exit((void *)0);
 }
 
-Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size)
+Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size, size_t numThreads)
 {   
     clock_t s,e;
     Matrix ret(mat1.nrow(), mat2.ncol());
@@ -697,9 +692,9 @@ Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size
     const size_t con_flag = con_spare_size > 0;
     const size_t col_flag = col_spare_size > 0;
 
-    int numThreads = 8;
-    pthread_t threads[numThreads];
-    WorkerArg args[numThreads];
+    constexpr const int MAX_THREADS = 12;
+    pthread_t threads[MAX_THREADS];
+    WorkerArg args[MAX_THREADS];
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);

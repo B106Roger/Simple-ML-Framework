@@ -131,7 +131,9 @@ Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block
 // Matrix multiply_YOUR_FUNC_NAME(const Matrix &mat1, const Matrix &mat2, ...other-argument) 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Matrix multiply_tile_modify_thread(const Matrix &mat1, const Matrix &mat2, size_t block_size);
-Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+// Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size);
+Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size, size_t numThreads);
+
 Matrix multiply_tile_SIMD_SSE(const Matrix &mat1, const Matrix &mat2, size_t block_size);
 Matrix multiply_tile_SIMD_AVX(const Matrix &mat1, const Matrix &mat2, size_t block_size);
 

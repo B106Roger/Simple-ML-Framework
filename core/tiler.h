@@ -100,11 +100,11 @@ struct Tiler
 
     void load(
         Matrix const & mat1, size_t it1, size_t jt1,
-        Matrix const & mat2, size_t it2, size_t jt2
+        Matrix const & mat2, size_t it2, size_t jt2, bool use_avx=false
     );
     void load(
         Matrix const & mat1, size_t it1, size_t jt1, size_t it1_size, size_t jt1_size,
-        Matrix const & mat2, size_t it2, size_t jt2, size_t it2_size, size_t jt2_size
+        Matrix const & mat2, size_t it2, size_t jt2, size_t it2_size, size_t jt2_size, bool use_avx=false
     );
 
     void multiply();
@@ -125,7 +125,7 @@ struct Tiler
 
 void Tiler::load(
     Matrix const & mat1, size_t it1, size_t jt1,
-    Matrix const & mat2, size_t it2, size_t jt2
+    Matrix const & mat2, size_t it2, size_t jt2, bool use_avx
 )
 {
     const size_t ncol1 = mat1.ncol();
@@ -153,19 +153,15 @@ void Tiler::load(
 
         for (size_t j=0; j<NDIM; ++j)
         {
-            // std::cout << "idx: " << base_t+j << "addr: " << m_ret->m_buffer <<std::endl;
-            (*m_ret)[base_t + j] = mat2.m_buffer[base_s + j];
-            (*m_mat2_avx)[base_t + j] = mat2.m_buffer[base_s + j];
-
-            (*m_mat2)[j*NDIM + i] = (*m_ret)[base_t + j];
-            //std::cout <<  (*m_mat2)[j*NDIM + i] << " ";
+            if (use_avx) (*m_mat2_avx)[base_t + j] = mat2.m_buffer[base_s + j];
+            else (*m_mat2)[j*NDIM + i] = mat2.m_buffer[base_s + j];
         }
     }
 }
 
 void Tiler::load(
     Matrix const & mat1, size_t it1, size_t jt1, size_t it1_size, size_t jt1_size,
-    Matrix const & mat2, size_t it2, size_t jt2, size_t it2_size, size_t jt2_size
+    Matrix const & mat2, size_t it2, size_t jt2, size_t it2_size, size_t jt2_size, bool use_avx
 )
 {
     const size_t ncol1 = mat1.ncol();
@@ -178,13 +174,8 @@ void Tiler::load(
         for (size_t j=0; j<jt1_size; ++j)
         {
             (*m_mat1)[base_t + j] = mat1.m_buffer[base_s + j];
-            //std::cout << (*m_mat1)[base_t + j] << " ";
         }
-        //std::cout << std::endl;
     }
-    //std::cout << std::endl;
-    // std::cout << "section 2" << std::endl;
-
     const size_t ncol2 = mat2.ncol();
 
     for (size_t i=0; i<it2_size; ++i)
@@ -194,14 +185,10 @@ void Tiler::load(
 
         for (size_t j=0; j<jt2_size; ++j)
         {
-            (*m_ret)[base_t + j] = mat2.m_buffer[base_s + j];
-            (*m_mat2_avx)[base_t + j] = mat2.m_buffer[base_s + j];
-            (*m_mat2)[j*NDIM + i] = (*m_ret)[base_t + j];
-            //std::cout <<  (*m_mat2)[j*NDIM + i] << " ";
+            if (use_avx) (*m_mat2_avx)[base_t + j] = mat2.m_buffer[base_s + j];
+            else (*m_mat2)[j*NDIM + i] = mat2.m_buffer[base_s + j];
         }
-        //std::cout << std::endl;
     }
-    //std::cout << std::endl;
 }
 
 

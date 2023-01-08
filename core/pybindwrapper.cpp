@@ -15,8 +15,8 @@
 template<typename Type>
 Matrix::Matrix(Type* ptr, size_t nrow, size_t ncol)
     :m_nrow(nrow), m_ncol(ncol), m_buffer(NULL)
-{  
-    // std::cout << 456 << std::endl;
+{
+
     size_t nelement = nrow * ncol;
     m_buffer = new double[nelement];
     for(size_t i =0; i < nelement; i++) 
@@ -57,7 +57,7 @@ PYBIND11_MODULE(_matrix, m) {
     // m.def("multiply_tile_nb", &multiply_tile_nb);
     // m.def("multiply_tile_nb_reorder", &multiply_tile_nb_reorder);
 
-    m.def("format_descriptor", &test);
+    // m.def("format_descriptor", &test);
     m.def("set_matrix_mode", &SetMatrixMode);
     m.def("get_matrix_mode", &GetMatrixMode);
 

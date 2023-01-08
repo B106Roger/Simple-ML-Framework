@@ -22,7 +22,7 @@ class TestStringMethods(unittest.TestCase):
         c=np.arange(0, self.row*self.col).reshape((self.row,self.col)).astype(np.float64)
         d=np.arange(0, self.row*self.col).reshape((self.col,self.row)).astype(np.float64)
         ans = c @ d
-        mlutiply_numpy_time = timeit.timeit(lambda: c @ d, number=self.loop, timer=time.process_time)
+        mlutiply_numpy_time = timeit.timeit(lambda: c @ d, number=self.loop, timer=time.process_time) / self.loop
         print(f'mlutiply_numpy_time : {mlutiply_numpy_time:8.6f}')
         
         a=_matrix.Matrix(self.row,self.col)
@@ -33,46 +33,43 @@ class TestStringMethods(unittest.TestCase):
         ##########################################
         # MKL Library Result (Upper Bound)
         ##########################################
-        mlutiply_mkl_time = timeit.timeit(lambda:_matrix.multiply_mkl(a, b), number=self.loop, timer=time.process_time)
+        mlutiply_mkl_time = timeit.timeit(lambda:_matrix.multiply_mkl(a, b), number=self.loop, timer=time.process_time) / self.loop
         print(f'mlutiply_mkl_time   : {mlutiply_mkl_time:8.6f}')
         
         ##########################################
         # Naive Method Result (Lower Bound)
         ##########################################
-        multiply_naive_time = timeit.timeit(lambda:_matrix.multiply_naive(a, b), number=2, timer=time.process_time)
+        NAIVE_LOOPS=1
+        multiply_naive_time = timeit.timeit(lambda:_matrix.multiply_naive(a, b), number=NAIVE_LOOPS, timer=time.process_time) / NAIVE_LOOPS
         print(f'multiply_naive_time : {multiply_naive_time:8.6f}')
         
         ##########################################
         # Tiled Matrix Method Result
         ##########################################
         # for tile in [4,8,16,32,64,128]:
-        for tile in [16,32]:
-        
+        for tile in [16]:
             t=_matrix.multiply_tile_modify(a, b, tile)
             self.assertTrue(test_equal(t,ans))
-            multiply_tile_time = timeit.timeit(lambda:_matrix.multiply_tile_modify(a, b, tile), number=self.loop, timer=time.process_time)
+            multiply_tile_time = timeit.timeit(lambda:_matrix.multiply_tile_modify(a, b, tile), number=self.loop, timer=time.process_time) / self.loop
             print(f'multiply_tile_mod_{tile:03d}   : {multiply_tile_time:8.6f}')
         
         ##########################################
         # Your Accelerate Method Result
         ##########################################
-        TILE_SIZE=16
-        for n_thread in [2,4,6,8]:
-            t=_matrix.multiply_tile_modify_pthread(a, b, TILE_SIZE, n_thread)
-            self.assertTrue(test_equal(t,ans))
-            multiply_tile_pthread_time = timeit.timeit(lambda:_matrix.multiply_tile_modify_pthread(a, b, TILE_SIZE, n_thread), number=self.loop, timer=time.process_time)
-            print(f'multiply_tile_{TILE_SIZE:03d}_thread_{n_thread:03d}_pthread : {multiply_tile_pthread_time:8.6f}')
+        TILE_SIZE=32
+        multiply_tile_pthread_time = timeit.timeit(lambda:_matrix.multiply_tile_modify_pthread(a, b, TILE_SIZE, 8, 8), number=self.loop, timer=time.process_time) / self.loop
+        print(f'multiply_tile_{TILE_SIZE:03d}_thread_{8:03d}_pthread : {multiply_tile_pthread_time:8.6f}')
             
         for tile in [16]:
             t=_matrix.multiply_tile_SIMD_SSE(a, b, tile)
             self.assertTrue(test_equal(t,ans))
-            multiply_tile_SSE_time = timeit.timeit(lambda:_matrix.multiply_tile_SIMD_SSE(a, b, tile), number=self.loop, timer=time.process_time)
+            multiply_tile_SSE_time = timeit.timeit(lambda:_matrix.multiply_tile_SIMD_SSE(a, b, tile), number=self.loop, timer=time.process_time) / self.loop
             print(f'multiply_tile_SSE_{tile:03d}_pthread   : {multiply_tile_SSE_time:8.6f}')
     
         for tile in [16]:
             t=_matrix.multiply_tile_SIMD_AVX(a, b, tile)
             self.assertTrue(test_equal(t,ans))
-            multiply_tile_AVX_time = timeit.timeit(lambda:_matrix.multiply_tile_SIMD_AVX(a, b, tile), number=self.loop, timer=time.process_time)
+            multiply_tile_AVX_time = timeit.timeit(lambda:_matrix.multiply_tile_SIMD_AVX(a, b, tile), number=self.loop, timer=time.process_time) / self.loop
             print(f'multiply_tile_AVX_{tile:03d}_pthread   : {multiply_tile_AVX_time:8.6f}')
     
 

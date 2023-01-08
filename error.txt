@@ -1,0 +1,10 @@
+./cpp-core/test.cpp: In function ‘int main()’:
+./cpp-core/test.cpp:15:12: warning: format ‘%f’ expects argument of type ‘double’, but argument 2 has type ‘clock_t’ {aka ‘long int’} [-Wformat=]
+     printf("multiply_naive : %f", (end-start) / CLOCKS_PER_SEC);
+            ^~~~~~~~~~~~~~~~~~~~~
+./cpp-core/test.cpp:20:12: warning: format ‘%f’ expects argument of type ‘double’, but argument 2 has type ‘clock_t’ {aka ‘long int’} [-Wformat=]
+     printf("multiply_tile_modify : %f", (end-start) / CLOCKS_PER_SEC);
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+./cpp-core/test.cpp:26:12: warning: format ‘%f’ expects argument of type ‘double’, but argument 2 has type ‘clock_t’ {aka ‘long int’} [-Wformat=]
+     printf("multiply_tile_modify_pthread : %f", (end-start) / CLOCKS_PER_SEC);
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

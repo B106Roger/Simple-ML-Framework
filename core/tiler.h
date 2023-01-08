@@ -216,11 +216,11 @@ void Tiler::multiply(size_t res_row, size_t res_col, size_t res_con)
 {
     for (size_t i=0; i<res_row; ++i)
     {
-        const size_t base1 = i*NDIM;
+        size_t base1 = i*NDIM;
 
         for (size_t k=0; k<res_col; ++k)
         {
-            const size_t base2 = k*NDIM;
+            size_t base2 = k*NDIM;
 
             double v = 0;
             for (size_t j=0; j<res_con; ++j)
@@ -236,8 +236,8 @@ void Tiler::multiply(size_t res_row, size_t res_col, size_t res_con)
 
 void Tiler::SSE_multiply(size_t res_row, size_t res_col, size_t res_con)
 {
-    for (int i = 0; i < NDIM; i+=2)
-        for (int j = 0; j < NDIM; j+=2)
+    for (size_t i = 0; i < NDIM; i+=2)
+        for (size_t j = 0; j < NDIM; j+=2)
             SSE_matmul(i, j);
 
 }
@@ -249,7 +249,7 @@ void Tiler::SSE_matmul(size_t m1_row, size_t m2_col)
     for (int i = 0; i < 2; i++)
         Sum[i] = _mm_setzero_pd();
 
-    for (int k = 0; k < NDIM; k += 2) {
+    for (size_t k = 0; k < NDIM; k += 2) {
         // Read matrix A
         for (int i = 0; i < 2; i++)
             I[i] = _mm_load_pd(&(*m_mat1)[(i+m1_row) * NDIM + k]);
@@ -287,8 +287,8 @@ void Tiler::SSE_matmul(size_t m1_row, size_t m2_col)
 
 void Tiler::AVX_multiply(size_t res_row, size_t res_col, size_t res_con)
 {
-    for (int i = 0; i < NDIM; i+=4)
-        for (int j = 0; j < NDIM; j+=4)
+    for (size_t i = 0; i < NDIM; i+=4)
+        for (size_t j = 0; j < NDIM; j+=4)
             AVX_matmul(i, j);
 
 }
@@ -300,7 +300,7 @@ void Tiler::AVX_matmul(size_t m1_row, size_t m2_col)
     for (int i = 0; i < 4; i++)
         Sum[i] = _mm256_setzero_pd();
 
-    for (int k = 0; k < NDIM; k += 4) {
+    for (size_t k = 0; k < NDIM; k += 4) {
         
         // Read matrix B
         for (int i = 0; i < 4; i++)

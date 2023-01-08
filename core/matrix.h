@@ -3,31 +3,9 @@
 #include <iostream>
 #include <math.h>
 #include <mkl.h>
-#include <ctime>
-
 #ifndef __MATRIX__
 #define __MATRIX__
 namespace py = pybind11;
-
-class BlockMy {
-public:
-    BlockMy(size_t nrow, size_t ncol, bool colmajor);
-    BlockMy(const BlockMy &block);
-    ~BlockMy();
-    double   operator() (size_t row, size_t col) const;
-    void setContent(double *ptr, size_t row_stride) ;
-
-    size_t nrow() const {return m_nrow;}
-    size_t ncol() const {return m_ncol;}
-
-private:
-    size_t m_nrow;
-    size_t m_ncol;
-    double *m_buffer;
-    size_t m_row_stride;
-    bool m_colmajor;
-
-};
 
 class Matrix {
 public:
@@ -82,9 +60,6 @@ public:
     // Math Operation Function End
     ///////////////////////////////////////////
 
-    BlockMy get_block(size_t block_size, size_t row_idx, size_t col_idx, bool col2row = false) const;
-    void set_block(size_t block_size, size_t row_idx, size_t col_idx, const Matrix &mat) ;
-
     Matrix T() const;
     double *data() { return m_buffer; }
     size_t nrow() const { return m_nrow; }
@@ -111,16 +86,13 @@ public:
 ///////////////////////////////////////////////////////////
 void SetMatrixMode(int val);
 int GetMatrixMode();
-void test(py::buffer b);
-
-
-
 
 Matrix mat_multiply(const Matrix &mat1, const Matrix &mat2);
 ///////////////////////////////////////////////////////////
 // Tested Matrix Multiplication Core
 ///////////////////////////////////////////////////////////
 Matrix multiply_naive(const Matrix &mat1, const Matrix &mat2);
+Matrix multiply_naive_reorder(const Matrix &mat1, const Matrix &mat2);
 Matrix multiply_mkl(const Matrix &mat1, const Matrix &mat2);
 Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block_size);
 
@@ -132,16 +104,12 @@ Matrix multiply_tile_modify(const Matrix &mat1, const Matrix &mat2, size_t block
 //////////////////////////////////////////////////////////////////////////////////////////
 // Matrix multiply_tile_modify_thread(const Matrix &mat1, const Matrix &mat2, size_t block_size);
 // Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size);
-Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size, size_t numThreads);
+// Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size, int numThreads);
+Matrix multiply_naive_pthread(const Matrix &mat1, const Matrix &mat2, int numThreads);
+Matrix multiply_tile_modify_pthread(const Matrix &mat1, const Matrix &mat2, size_t block_size, int numThreads, int ch_thread);
+Matrix multiply_naive_omp(const Matrix &mat1, const Matrix &mat2, int numThreads) ;
 
 Matrix multiply_tile_SIMD_SSE(const Matrix &mat1, const Matrix &mat2, size_t block_size);
 Matrix multiply_tile_SIMD_AVX(const Matrix &mat1, const Matrix &mat2, size_t block_size);
-
-// ******************************************************
-// Not Correct if the row and col are 2's multipliers
-// ******************************************************
-Matrix multiply_tile(const Matrix &mat1, const Matrix &mat2, size_t block_size);
-Matrix multiply_tile_nb(const Matrix &mat1, const Matrix &mat2, size_t block_size);
-Matrix multiply_tile_nb_reorder(const Matrix &mat1, const Matrix &mat2, size_t block_size);
 #endif
 // end #define __MATRIX__
